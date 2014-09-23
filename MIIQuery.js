@@ -526,14 +526,14 @@
 
         var success = function(data, status, xhr) {
             var d;
-            if ($self.Options.singleTag) {
+            /* if ($self.Options.singleTag) {
                 if ($self.Options.dataSource === "LIMS") {
                     d = miiUtils.formatMIILIMSData(data);
                 } else
                     d = miiUtils.formatMIIData(data);
-            } else {
-                d = miiUtils.formatMIIData(data);
-            }
+            } else {*/
+            d = miiUtils.formatMIIData(data);
+            //}
             _data = d;
         };
 
@@ -867,13 +867,12 @@ var miiUtils = miiUtils || {
                     var collen = columns.length;
                     for (var k = 0; k < collen; k++) {
                         var dataItem = dataRow[columns[k]];
-                        if (columns[k] == "DateTime") {
-
+                        if (columns[k].toLowerCase().indexOf("datetime") > -1) {
                             dataItem = formatMIIDate(dataItem);
-                        } else if (dataItem === "NA") {
-                            includeRow = false;
+                            itemArray.push(dataItem);
+                        } else if ($.isNumeric(dataItem)) {
+                            itemArray.push(dataItem);
                         }
-                        itemArray.push(dataItem);
                     }
                     if (includeRow) {
                         rows.push(itemArray);
@@ -889,7 +888,7 @@ var miiUtils = miiUtils || {
         }
     },
 
-    formatMIILIMSData: function(data) {
+   /* formatMIILIMSData: function(data) {
         var rowsets = data.Rowsets;
         if (rowsets.Rowset != undefined) {
             var rset = rowsets.Rowset;
@@ -908,7 +907,7 @@ var miiUtils = miiUtils || {
                 var rows = [];
                 for (var j = 0; j < rowCount; j++) {
                     var dataRow = rs.Row[j];
-                    var itemArray = [];                   
+                    var itemArray = [];
                     var includeRow = true;
                     var collen = columns.length;
                     var theDataItem = null;
@@ -938,7 +937,7 @@ var miiUtils = miiUtils || {
                 "FatalError": "Fatal Error: " + rowsets.FatalError
             }];
         }
-    },
+    },*/
 
     /*  Execute a given query template and assign the provided callbacks 
         A deferred is returned for further processing if necessary.
@@ -964,15 +963,6 @@ var miiUtils = miiUtils || {
         return req;
     },
 
-    justTheFacts: function(dataArray) {
-        var ret = [];
-        if ($isArray(dataArray)) {
-            var len = dataArray.length;
-            for (var i = 0; i < len; i++) {
-                //var row = 
-            }
-        }
-    },
 
     createTrendDiv: function(evt, tagData) {
 
@@ -1039,6 +1029,7 @@ var miiUtils = miiUtils || {
 
         var chartOptions = {
             title: tagData.DisplayText,
+            showTitle: false,
             axes: {
                 xaxis: {
                     renderer: $.jqplot.DateAxisRenderer,
@@ -1076,9 +1067,9 @@ var miiUtils = miiUtils || {
         $div.miiJQPlot(queryOptions, chartOptions, null, null);
 
         $div.dialog({
-            width: 400,
-            height: 300,
-            title: tagData.Descriptor
+            width: 450,
+            height: 350,
+            title: tagData.DisplayText
 
         });
 
