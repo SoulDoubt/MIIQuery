@@ -1,8 +1,8 @@
 /* 
-	MIIQuery - A jquery plugin for MII 
-	By: Allan Irvine - WIPRO
+    MIIQuery - A jquery plugin for MII 
+    By: Allan Irvine - WIPRO
 
-	
+    
 */
 
 (function($) {
@@ -35,7 +35,7 @@
 
 
     /*
-		Creates an HTML table from an "arbitrary" MII SQL Query template
+        Creates an HTML table from an "arbitrary" MII SQL Query template
     */
     $.fn.miiGridHTML = function(options) {
 
@@ -361,8 +361,8 @@
                             break;
                         case 'Value': // we need to break the closure on 'tag' if using it in any dynamically assigned event handlers...
                             (function(dataTag) {
-                                var $anc = $("<a/>").attr({
-                                    "href": "#"
+                                var $anc = $("<span/>").css({
+                                    "cursor": "pointer"
                                 }).html(value + " " + dataTag.Units).on('click', function(e) {
                                     miiUtils.createTrendDiv(e, dataTag);
                                 });
@@ -399,14 +399,14 @@
     };
 
     /* Extend the fn object again to draw a jqPlot chart with the 
-		
+        
 
-		queryOpts : JSON object containing options to be used by the query template
+        queryOpts : JSON object containing options to be used by the query template
 
-		chartOpts : JSON object comprising jqPlot Chart Options
+        chartOpts : JSON object comprising jqPlot Chart Options
 
-		chartObject : a variable that will be assigned the jqPlot object that is created
-					  you can use this to refer to the plot once this plugin returns.
+        chartObject : a variable that will be assigned the jqPlot object that is created
+                      you can use this to refer to the plot once this plugin returns.
 
     */
     $.fn.miiJQPlot = function(options, chartOpts, data, additionalData) {
@@ -414,9 +414,9 @@
         var $self = this;
         //var elemID = $self.selector.substring(1, $self.selector.length);
         var elemID = $self[0].id;
-		var target = $("#" + elemID);
-       /* if (elemID === undefined || elemID === ""){
-        	elemID = $self[0].id;
+        var target = $("#" + elemID);
+        /* if (elemID === undefined || elemID === ""){
+            elemID = $self[0].id;
         }*/
         var _options;
         this.Options = null;
@@ -512,7 +512,8 @@
             errorText: "An Error Occurred",
             queryTemplate: "",
             queryParams: {},
-            processDataFurther: true
+            singleTag: false,
+            dataSource: null
         };
 
         this.Options = $.extend({}, defaults, _options);
@@ -524,9 +525,14 @@
         }
 
         var success = function(data, status, xhr) {
-            var d = miiUtils.formatMIIData(data);
-            if ($self.Options.processDataFurther){
-
+            var d;
+            if ($self.Options.singleTag) {
+                if ($self.Options.dataSource === "LIMS") {
+                    d = miiUtils.formatMIILIMSData(data);
+                } else
+                    d = miiUtils.formatMIIData(data);
+            } else {
+                d = miiUtils.formatMIIData(data);
             }
             _data = d;
         };
@@ -673,7 +679,7 @@ var miiUtils = miiUtils || {
 
 
     /*
-		Given a query template path and a params object, constructs the URL for the MII query template request
+        Given a query template path and a params object, constructs the URL for the MII query template request
     */
     createRequestURL: function(template, queryParams) {
         var urlBase = '/XMII/Illuminator?QueryTemplate=';
@@ -697,9 +703,9 @@ var miiUtils = miiUtils || {
     },
 
     /*
-		Executes the given query template with the provided params object.
-		Uses HTTP GET and does not allow for callbacks, Use the returned deferred object 
-		to handle resolution/rejection events as necessary.
+        Executes the given query template with the provided params object.
+        Uses HTTP GET and does not allow for callbacks, Use the returned deferred object 
+        to handle resolution/rejection events as necessary.
     */
     miiGet: function(queryTemplate, queryParams) {
         var finalURL = miiUtils.createRequestURL(queryTemplate, queryParams)
@@ -715,9 +721,9 @@ var miiUtils = miiUtils || {
     },
 
     /*
-		Executes multiple Query Templates asynchronously. 
-		Returns a promise from a master deferred that tracks the state of all query templates, therefore
-		the .done method handler on the return value will receive data from all templates in the order they appear in the templates array.
+        Executes multiple Query Templates asynchronously. 
+        Returns a promise from a master deferred that tracks the state of all query templates, therefore
+        the .done method handler on the return value will receive data from all templates in the order they appear in the templates array.
     */
     executeMultipleQueryTemplates: function(templates) {
         if ($.isArray(templates)) {
@@ -733,8 +739,8 @@ var miiUtils = miiUtils || {
     },
 
     /*
-    	Utility function
-		Returns a valid date object given a date string extracted from MII query data. 
+        Utility function
+        Returns a valid date object given a date string extracted from MII query data. 
     */
     formatMIIDate: function(miiDate) {
         var d = Date.parse(miiDate);
@@ -752,8 +758,8 @@ var miiUtils = miiUtils || {
     },
 
     /*
-		Utility Function
-		Grabs the column names from returned MII query data.
+        Utility Function
+        Grabs the column names from returned MII query data.
     */
     getMIIColumnNames: function(data) {
         var rowsets = data.Rowsets;
@@ -883,12 +889,63 @@ var miiUtils = miiUtils || {
         }
     },
 
-    /* 	Execute a given query template and assign the provided callbacks 
-		A deferred is returned for further processing if necessary.
+    formatMIILIMSData: function(data) {
+        var rowsets = data.Rowsets;
+        if (rowsets.Rowset != undefined) {
+            var rset = rowsets.Rowset;
+            var rsc = rset.length;
+            var plottableRows = [];
+            for (var i = 0; i < rsc; i++) {
+                var columns = [];
+                var columnDescriptions = [];
+                var rs = rowsets.Rowset[i];
+                var colCount = rs.Columns.Column.length;
+                for (var x = 0; x < colCount; x++) {
+                    columnDescriptions.push(rs.Columns.Column[x].Description);
+                    columns.push(rs.Columns.Column[x].Name);
+                }
+                var rowCount = rs.Row.length;
+                var rows = [];
+                for (var j = 0; j < rowCount; j++) {
+                    var dataRow = rs.Row[j];
+                    var itemArray = [];                   
+                    var includeRow = true;
+                    var collen = columns.length;
+                    var theDataItem = null;
+                    for (var k = 0; k < collen; k++) {
+                        var dataItem = dataRow[columns[k]];
+                        if (columns[k] == "SampleDatetime") {
+                            theDataItem = formatMIIDate(dataItem);
+                            itemArray.push(theDataItem);
+                        } else if (columns[k] == "NumericResult") {
+                            if (dataItem === "NA") {
+                                includeRow = false;
+                            }
+                            theDataItem = dataItem;
+                            itemArray.push(theDataItem);
+                        }
+                    }
 
-		This method uses POST as described in MII documentation, but no data is sent and all parameters are in the URL.
+                    if (includeRow) {
+                        rows.push(itemArray);
+                    }
+                }
+                plottableRows.push(rows);
+            }
+            return plottableRows;
+        } else if (rowsets.FatalError != undefined) {
+            return [{
+                "FatalError": "Fatal Error: " + rowsets.FatalError
+            }];
+        }
+    },
 
-	*/
+    /*  Execute a given query template and assign the provided callbacks 
+        A deferred is returned for further processing if necessary.
+
+        This method uses POST as described in MII documentation, but no data is sent and all parameters are in the URL.
+
+    */
     miiQuery: function(queryTemplate, queryParams, beforeSendCallback, successCallback, errorCallback, completeCallback) {
 
         var finalURL = this.createRequestURL(queryTemplate, queryParams);
@@ -907,14 +964,14 @@ var miiUtils = miiUtils || {
         return req;
     },
 
-    justTheFacts : function(dataArray){
-    	var ret = [];
-    	if ($isArray(dataArray)){
-    		var len = dataArray.length;
-    		for (var i = 0; i < len; i++){
-    			//var row = 
-    		}
-    	}
+    justTheFacts: function(dataArray) {
+        var ret = [];
+        if ($isArray(dataArray)) {
+            var len = dataArray.length;
+            for (var i = 0; i < len; i++) {
+                //var row = 
+            }
+        }
     },
 
     createTrendDiv: function(evt, tagData) {
@@ -926,15 +983,17 @@ var miiUtils = miiUtils || {
 
         var $div = $("#putTheChartHere");
 
-        if ($div.length > 0)
-        {
-			$("#putTheChartHere").remove();        	
+        if ($div.length > 0) {
+            $("#putTheChartHere").remove();
         }
 
         $div = $("<div>").css({
             "width": "400px",
-            "height": "300px"
-        }).attr({"id": "putTheChartHere"});
+            "height": "300px",
+            "z-index": 1200
+        }).attr({
+            "id": "putTheChartHere"
+        });
         var ed = new Date();
         var sd = new Date();
         sd.setDate(ed.getDate() - 30);
@@ -973,7 +1032,9 @@ var miiUtils = miiUtils || {
         var queryOptions = {
             queryTemplate: qt,
             queryParams: qParams,
-            waitText: "Loading 30 Day Trend"
+            waitText: "Loading 30 Day Trend",
+            singleTag: true,
+            dataSource: tagData.Source
         };
 
         var chartOptions = {
