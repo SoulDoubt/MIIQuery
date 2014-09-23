@@ -549,7 +549,7 @@
             $self.css({
                 "height": "300px"
             });
-            if (_data != null && _data !== undefined) {
+            if (_data != null && _data !== undefined && _data.length > 0) {
                 if (_data[0].FatalError == undefined) {
                     if ($self.AdditionalData != null) {
                         if ($.isArray($self.AdditionalData)) {
@@ -567,6 +567,16 @@
                     }).text($self.Options.errorText + " " + _data[0].FatalError);
                     $self.append($error);
                 }
+            }else{
+                $error = $("<div/>").css({
+                        "width": "100%",
+                        "height": "300px",
+                        "text-align": "center",
+                        "vertical-align": "middle",
+                        "font-weight": "bold",
+                        "color": "red"
+                    }).text($self.Options.errorText + " No data was returned from the server.");
+                    $self.append($error);
             }
         };
 
@@ -943,14 +953,7 @@ var miiUtils = miiUtils || {
         var qt = "";
         var qParams = {};
         switch (tagData.Source) {
-            case "PI":
-                /*if (tagData.Aggregation === undefined || tagData.Aggregation === 'None') {
-                    qt = currentValTemplate;
-                } else if (tagData.Aggregation === "TOT") {
-                    qt = totTemplate;
-                } else if (tagData.Aggregation === "AVG") {
-                    qt = avgTemplate;
-                }*/
+            case "PI":                
                 qt = currentValTemplate;
                 qParams = miiUtils.createTagQueryParams([tagData], sd, ed);
                 break;
@@ -1002,7 +1005,7 @@ var miiUtils = miiUtils || {
                 lineWidth: 1
             }],
             highlighter: {
-                show: false
+                show: true
 
             },
             cursor: {
