@@ -854,31 +854,33 @@ var miiUtils = miiUtils || {
                     columnDescriptions.push(rs.Columns.Column[x].Description);
                     columns.push(rs.Columns.Column[x].Name);
                 }
-                var rowCount = rs.Row.length;
-                var rows = [];
-                for (var j = 0; j < rowCount; j++) {
-                    var dataRow = rs.Row[j];
+                if (rs.Row) {
+                    var rowCount = rs.Row.length;
+                    var rows = [];
+                    for (var j = 0; j < rowCount; j++) {
+                        var dataRow = rs.Row[j];
 
-                    var itemArray = [];
-                    // Some data sources (PI) will return "NA" as a value sometimes if the value at the given
-                    // timestamp was somehow "bad". jqplot will fail to draw any points if there is a string value present
-                    // and it is expecting a numeric value. Thereforme 'NA' values must be excluded.
-                    var includeRow = true;
-                    var collen = columns.length;
-                    for (var k = 0; k < collen; k++) {
-                        var dataItem = dataRow[columns[k]];
-                        if (columns[k].toLowerCase().indexOf("datetime") > -1) {
-                            dataItem = formatMIIDate(dataItem);
-                            itemArray.push(dataItem);
-                        } else if ($.isNumeric(dataItem)) {
-                            itemArray.push(dataItem);
+                        var itemArray = [];
+                        // Some data sources (PI) will return "NA" as a value sometimes if the value at the given
+                        // timestamp was somehow "bad". jqplot will fail to draw any points if there is a string value present
+                        // and it is expecting a numeric value. Thereforme 'NA' values must be excluded.
+                        var includeRow = true;
+                        var collen = columns.length;
+                        for (var k = 0; k < collen; k++) {
+                            var dataItem = dataRow[columns[k]];
+                            if (columns[k].toLowerCase().indexOf("datetime") > -1) {
+                                dataItem = formatMIIDate(dataItem);
+                                itemArray.push(dataItem);
+                            } else if ($.isNumeric(dataItem)) {
+                                itemArray.push(dataItem);
+                            }
+                        }
+                        if (includeRow) {
+                            rows.push(itemArray);
                         }
                     }
-                    if (includeRow) {
-                        rows.push(itemArray);
-                    }
+                    plottableRows.push(rows);
                 }
-                plottableRows.push(rows);
             }
             return plottableRows;
         } else if (rowsets.FatalError != undefined) {
@@ -888,56 +890,6 @@ var miiUtils = miiUtils || {
         }
     },
 
-   /* formatMIILIMSData: function(data) {
-        var rowsets = data.Rowsets;
-        if (rowsets.Rowset != undefined) {
-            var rset = rowsets.Rowset;
-            var rsc = rset.length;
-            var plottableRows = [];
-            for (var i = 0; i < rsc; i++) {
-                var columns = [];
-                var columnDescriptions = [];
-                var rs = rowsets.Rowset[i];
-                var colCount = rs.Columns.Column.length;
-                for (var x = 0; x < colCount; x++) {
-                    columnDescriptions.push(rs.Columns.Column[x].Description);
-                    columns.push(rs.Columns.Column[x].Name);
-                }
-                var rowCount = rs.Row.length;
-                var rows = [];
-                for (var j = 0; j < rowCount; j++) {
-                    var dataRow = rs.Row[j];
-                    var itemArray = [];
-                    var includeRow = true;
-                    var collen = columns.length;
-                    var theDataItem = null;
-                    for (var k = 0; k < collen; k++) {
-                        var dataItem = dataRow[columns[k]];
-                        if (columns[k] == "SampleDatetime") {
-                            theDataItem = formatMIIDate(dataItem);
-                            itemArray.push(theDataItem);
-                        } else if (columns[k] == "NumericResult") {
-                            if (dataItem === "NA") {
-                                includeRow = false;
-                            }
-                            theDataItem = dataItem;
-                            itemArray.push(theDataItem);
-                        }
-                    }
-
-                    if (includeRow) {
-                        rows.push(itemArray);
-                    }
-                }
-                plottableRows.push(rows);
-            }
-            return plottableRows;
-        } else if (rowsets.FatalError != undefined) {
-            return [{
-                "FatalError": "Fatal Error: " + rowsets.FatalError
-            }];
-        }
-    },*/
 
     /*  Execute a given query template and assign the provided callbacks 
         A deferred is returned for further processing if necessary.
@@ -1045,10 +997,12 @@ var miiUtils = miiUtils || {
                 label: tagData.Tag,
                 color: "#007E7A",
                 yaxis: 'yaxis',
-                index: 4
+                index: 4,
+                showMarker: false,
+                lineWidth: 1
             }],
             highlighter: {
-                show: true
+                show: false
 
             },
             cursor: {
