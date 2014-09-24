@@ -9,7 +9,7 @@
 
     $.ajaxSetup({
         async: true,
-        timeout: 7500
+        timeout: 30000
     });
 
     function createWaitDiv(waitText) {
@@ -962,17 +962,7 @@ var miiUtils = miiUtils || {
                 qParams = miiUtils.createLIMSQueryParams([tagData], sd, ed);
                 break;
         }
-
-
-        /*
-
- var defaults = {
-            waitText: "Loading...",
-            errorText: "An Error Occurred",
-            queryTemplate: "",
-            queryParams: {},
-        };
-        */
+    
 
         var queryOptions = {
             queryTemplate: qt,
