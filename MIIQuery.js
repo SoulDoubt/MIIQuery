@@ -420,11 +420,13 @@
         }*/
         var _options;
         this.Options = null;
-        var _data = null;
+        this._data = null;
         this.ChartOptions = null;
         this.AdditionalData = null;
 
         this.chartObject = null;
+        this.miiResponseData = null;
+        this.miiQueryURL = "";
 
         this.UpdateChart = function(options) {
             var $self = this;
@@ -435,10 +437,10 @@
             var updateComplete = function(data, status, xhr) {
                 $waitDiv.remove();
                 if (options.additionalData != null) {
-                    _data.push(options.additionalData);
+                    $self._data.push(options.additionalData);
                 }
                 $self.chartObject.replot({
-                    data: _data,
+                    data: $self._data,
                     resetAxes: options.resetAxes,
                     axes: options.axes
                 });
@@ -455,9 +457,9 @@
 
             if (options.data != null) {
                 // in this case, the client is providing data through some other means
-                _data = options.data;
+                this._data = options.data;
                 if (options.additionalData != null) {
-                    _data.push(options.additionalData);
+                    this._data.push(options.additionalData);
                 }
                 this.chartObject.replot({
                     data: _data,
@@ -496,10 +498,10 @@
         if (arguments.length === 4) {
             _options = options;
             this.ChartOptions = chartOpts;
-            _data = data;
+            this._data = data;
             this.AdditionalData = additionalData;
         } else if (arguments.length === 3) {
-            _data = data;
+            this._data = data;
             _options = options;
             this.ChartOptions = chartOpts;
         } else if (arguments.length === 2) {
@@ -526,6 +528,7 @@
 
         var success = function(data, status, xhr) {
             var d;
+            $self.miiResponseData = data;
             /* if ($self.Options.singleTag) {
                 if ($self.Options.dataSource === "LIMS") {
                     d = miiUtils.formatMIILIMSData(data);
@@ -534,7 +537,7 @@
             } else {*/
             d = miiUtils.formatMIIData(data);
             //}
-            _data = d;
+            $self._data = d;
         };
 
         var error = function(xhr, status) {
@@ -544,19 +547,19 @@
         }
 
         var complete = function() {
-
+            var d = $self._data;
             $waitDiv.remove();
             $self.css({
                 "height": "300px"
             });
-            if (_data != null && _data !== undefined && _data.length > 0) {
-                if (_data[0].FatalError == undefined) {
+            if (d != null && d !== undefined && d.length > 0) {
+                if (d[0].FatalError == undefined) {
                     if ($self.AdditionalData != null) {
                         if ($.isArray($self.AdditionalData)) {
-                            _data.push($self.AdditionalData);
+                            d.push($self.AdditionalData);
                         }
                     }
-                    $self.chartObject = $.jqplot(elemID, _data, $self.ChartOptions);
+                    $self.chartObject = $.jqplot(elemID, d, $self.ChartOptions);
                 } else {
                     $error = $("<div/>").css({
                         "width": "100%",
@@ -564,26 +567,29 @@
                         "text-align": "center",
                         "vertical-align": "middle",
                         "font-weight": "bold"
-                    }).text($self.Options.errorText + " " + _data[0].FatalError);
+                    }).text($self.Options.errorText + " " + d[0].FatalError);
                     $self.append($error);
                 }
-            }else{
+            } else {
                 $error = $("<div/>").css({
-                        "width": "100%",
-                        "height": "300px",
-                        "text-align": "center",
-                        "vertical-align": "middle",
-                        "font-weight": "bold",
-                        "color": "red"
-                    }).text($self.Options.errorText + " No data was returned from the server.");
-                    $self.append($error);
+                    "width": "100%",
+                    "height": "300px",
+                    "text-align": "center",
+                    "vertical-align": "middle",
+                    "font-weight": "bold",
+                    "color": "red"
+                }).text($self.Options.errorText + " No data was returned from the server.");
+                $self.append($error);
             }
         };
 
-        if (_data === null) {
+        if (this._data === null) {
             if (this.Options.queryTemplate !== undefined && this.Options.queryTemplate != "") {
                 //miiUtils.miiQuery(this.Options.queryTemplate, this.Options.queryParams, bSend, success, error, complete);
                 bSend();
+                var paramsCopy = $.extend({}, this.Options.queryParams);
+                paramsCopy["Content-Type"] = "text/html";
+                this.miiQueryURL = miiUtils.createRequestURL(this.Options.queryTemplate, paramsCopy);
                 var q = miiUtils.miiGet(this.Options.queryTemplate, this.Options.queryParams);
                 q.done(success).fail(error).always(complete);
             } else {
@@ -593,10 +599,10 @@
         } else {
             if (this.AdditionalData != null) {
                 if ($.isArray(this.AdditionalData)) {
-                    _data.push(this.AdditionalData);
+                    this._data.push(this.AdditionalData);
                 }
             }
-            this.chartObject = $.jqplot(elemID, _data, this.ChartOptions);
+            this.chartObject = $.jqplot(elemID, this._data, this.ChartOptions);
         }
 
         return this;
@@ -657,6 +663,22 @@ var miiUtils = miiUtils || {
         }
 
         return qp;
+    },
+
+    createPcoAggregateQueryParams: function(tags, startDate, endDate) {
+        var qp = {};
+        qp["StartDate"] = toMIIQueryDate(startDate);
+        qp["EndDate"] = toMIIQueryDate(endDate);
+        var interval = (endDate - startDate) / (1000 * 60 * 60 * 24);
+        qp["IntervalCount"] = interval < 1 ? 1 : interval;
+        var tagString = "";
+        for (var i = 0; i < tags.length; i++) {
+            tagString += tags[i].Tag + ",";
+        }
+        tagString = tagString.substring(0, tagString.length - 1);
+        qp["SelectedTags"] = tagString;
+        return qp;
+
     },
 
     // Tag data is suitable for PI
@@ -825,8 +847,8 @@ var miiUtils = miiUtils || {
                                 }
                                 tagInfo.Data = rs.Row;
                                 tagInfo.LookupColumn = column.Name;
-                                var aggString = column.Name.substring(0, 3);
-                                if (aggString.match(/(AVG|TOT|SUM|MIN|MAX)/)) {
+                                var aggString = column.Name.substring(0, column.Name.indexOf("_"));
+                                if (aggString.match(/(AVG|TOT|SUM|MIN|MAX|Average|Total|Sum)/)) {
                                     tagInfo.Aggregation = aggString;
                                 } else {
                                     tagInfo.Aggregation = "None";
@@ -929,23 +951,46 @@ var miiUtils = miiUtils || {
     createTrendDiv: function(evt, tagData) {
 
         var avgTemplate = "Long Harbour PIMS/DailyAvgTagQuery";
+        var avgPcoTemplate = "Long Harbour PIMS/DailyAvgPcoQuery";
         var totTemplate = "Long Harbour PIMS/DailyTotTagQuery";
+        var totPcoTemplate = "Long Harbour PIMS/DailyTotPcoQuery";
         var currentValTemplate = "Long Harbour PIMS/CurrentValueTagQuery";
         var limsCurrentValTemplate = "Long Harbour PIMS/LIMSValueQuery";
 
-        var $div = $("#putTheChartHere");
+        var $div = $("#popupTrend");
 
+        var $chartDiv = $("<div/>").css({
+            "width": "400px",
+            "height": "300px",
+            "z-index": 1201
+        }).attr({
+            "id": "popupTrendChartHolder"
+        });
+
+        /*var $menuDiv = $("<div/>").css({
+            "height": "20px",
+            "width": "100%",
+            "background-color": "#FF2233"
+        }).text("I am the menu");
+*/
+        // remove the container from the DOM if it exists already
+        // this will 'close' and open trend dialogs
         if ($div.length > 0) {
-            $("#putTheChartHere").remove();
+            $("#popupTrend").remove();
         }
+
 
         $div = $("<div>").css({
             "width": "400px",
-            "height": "300px",
+            "height": "320px",
             "z-index": 1200
         }).attr({
-            "id": "putTheChartHere"
+            "id": "popupTrend"
         });
+
+        $div.append($chartDiv);
+        //$div.append($menuDiv);
+
         var ed = new Date();
         var sd = new Date();
         sd.setDate(ed.getDate() - 30);
@@ -953,16 +998,25 @@ var miiUtils = miiUtils || {
         var qt = "";
         var qParams = {};
         switch (tagData.Source) {
-            case "PI":                
-                qt = currentValTemplate;
-                qParams = miiUtils.createTagQueryParams([tagData], sd, ed);
+            case "PI":
+                var agg = tagData.Aggregation.toLowerCase();
+                if (agg === "none" || agg === "" || agg === undefined) {
+                    qt = currentValTemplate;
+                    qParams = miiUtils.createTagQueryParams([tagData], sd, ed);
+                } else if (agg.match(/(avg|average)/)) {
+                    qt = avgPcoTemplate;
+                    qParams = miiUtils.createPcoAggregateQueryParams([tagData], sd, ed);
+                } else if (agg.match(/sum/)) {
+                    qt = totPcoTemplate;
+                    qParams = miiUtils.createPcoAggregateQueryParams([tagData], sd, ed);
+                }
                 break;
             case "LIMS":
                 qt = limsCurrentValTemplate;
                 qParams = miiUtils.createLIMSQueryParams([tagData], sd, ed);
                 break;
         }
-    
+
 
         var queryOptions = {
             queryTemplate: qt,
@@ -1011,7 +1065,7 @@ var miiUtils = miiUtils || {
             }
         };
 
-        $div.miiJQPlot(queryOptions, chartOptions, null, null);
+        $chartDiv.miiJQPlot(queryOptions, chartOptions, null, null);
 
         $div.dialog({
             width: 450,
@@ -1020,7 +1074,18 @@ var miiUtils = miiUtils || {
 
         });
 
-
+        // if the chart was created as a result of an mii Query (likely) then we should give users access to the raw data
+        // as you would get in MII.        
+        if ($chartDiv.miiQueryURL !== "" && $chartDiv.miiQueryURL !== undefined) {
+            $dialogHeader = $(".ui-dialog-titlebar");
+            $btn = $("<button/>").text("getData").on('click', function() {
+                //alert($chartDiv.miiQueryURL);
+                window.open($chartDiv.miiQueryURL);
+            }).css({
+                "float": "right"
+            });
+            $dialogHeader.append($btn);
+        }
 
     }
 
