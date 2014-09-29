@@ -954,7 +954,7 @@ var miiUtils = miiUtils || {
         var avgPcoTemplate = "Long Harbour PIMS/DailyAvgPcoQuery";
         var totTemplate = "Long Harbour PIMS/DailyTotTagQuery";
         var totPcoTemplate = "Long Harbour PIMS/DailyTotPcoQuery";
-        var currentValTemplate = "Long Harbour PIMS/CurrentValueTagQuery";
+        var currentValTemplate = "Long Harbour PIMS/CurrentValuePcoQuery";
         var limsCurrentValTemplate = "Long Harbour PIMS/LIMSValueQuery";
 
         var $div = $("#popupTrend");
@@ -1002,11 +1002,11 @@ var miiUtils = miiUtils || {
                 var agg = tagData.Aggregation.toLowerCase();
                 if (agg === "none" || agg === "" || agg === undefined) {
                     qt = currentValTemplate;
-                    qParams = miiUtils.createTagQueryParams([tagData], sd, ed);
+                    qParams = miiUtils.createPcoAggregateQueryParams([tagData], sd, ed);
                 } else if (agg.match(/(avg|average)/)) {
                     qt = avgPcoTemplate;
                     qParams = miiUtils.createPcoAggregateQueryParams([tagData], sd, ed);
-                } else if (agg.match(/sum/)) {
+                } else if (agg.match(/sum|tot/)) {
                     qt = totPcoTemplate;
                     qParams = miiUtils.createPcoAggregateQueryParams([tagData], sd, ed);
                 }
@@ -1035,9 +1035,9 @@ var miiUtils = miiUtils || {
                     tickOptions: {
                         formatString: '%d-%b-%Y'
                     },
-                    label: 'Date'
-                    //min: sd,
-                    //max: ed
+                    label: 'Date',
+                    min: sd,
+                    max: ed
                 }
             },
             series: [{
@@ -1045,7 +1045,7 @@ var miiUtils = miiUtils || {
                 color: "#007E7A",
                 yaxis: 'yaxis',
                 index: 4,
-                showMarker: false,
+                showMarker: true,
                 lineWidth: 1
             }],
             highlighter: {
@@ -1078,7 +1078,7 @@ var miiUtils = miiUtils || {
         // as you would get in MII.        
         if ($chartDiv.miiQueryURL !== "" && $chartDiv.miiQueryURL !== undefined) {
             $dialogHeader = $(".ui-dialog-titlebar");
-            $btn = $("<button/>").text("getData").on('click', function() {
+            $btn = $("<button/>").text("D").on('click', function() {
                 //alert($chartDiv.miiQueryURL);
                 window.open($chartDiv.miiQueryURL);
             }).css({
