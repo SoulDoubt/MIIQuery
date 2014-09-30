@@ -9,7 +9,7 @@
 
     $.ajaxSetup({
         async: true,
-        timeout: 30000
+        timeout: 60000
     });
 
     function createWaitDiv(waitText) {
@@ -196,7 +196,8 @@
                     $self.empty();
                     var $msg = $("<span>").css({
                         "color": "red"
-                    }).text(status);
+                    }).text(opts.title + " Error: " + status);
+                    $self.append($msg);
                 });
             }
         }
@@ -366,7 +367,8 @@
                                 }).html(value + " " + dataTag.Units).on('click', function(e) {
                                     miiUtils.createTrendDiv(e, dataTag);
                                 });
-                                $cell.attr("title", tt).addClass("right");
+                                // this replace call is rendundant because you could set the newline char properly above                                
+                                $cell.attr("title", tt.replace(/&#013;/g, '\n')).addClass("right");
                                 $cell.append($anc);
                                 $dataTr.append($cell);
                             })(tag);
@@ -666,6 +668,8 @@ var miiUtils = miiUtils || {
     },
 
     createPcoAggregateQueryParams: function(tags, startDate, endDate) {
+        // ugh, the way to send tags to a Pco query is by constructing a comma-delinited string of the 
+        // tag names and setting the 'SelectedTags' property to this.
         var qp = {};
         qp["StartDate"] = toMIIQueryDate(startDate);
         qp["EndDate"] = toMIIQueryDate(endDate);
@@ -696,6 +700,7 @@ var miiUtils = miiUtils || {
     },
 
     // Lims Data is suitable for LIMS - don't even start saying there should be a prototype object for these things.....
+    // I care not about your OOP patterns and such.
     LimsData: function(sampleName, resultName, displayText, units, target, displaySequence) {
         this.SampleName = sampleName;
         this.TestType = resultName;
@@ -853,6 +858,7 @@ var miiUtils = miiUtils || {
                                 } else {
                                     tagInfo.Aggregation = "None";
                                 }
+                                delete rowsetData;
                                 return;
                             }
                         }
@@ -869,6 +875,7 @@ var miiUtils = miiUtils || {
                 // in this case the rowset data did not come from MII and probably doesn't exist
             }
         }
+        delete rowsetData;
     },
 
     formatMIIData: function(data) {
@@ -914,8 +921,10 @@ var miiUtils = miiUtils || {
                     plottableRows.push(rows);
                 }
             }
+            delete data;
             return plottableRows;
         } else if (rowsets.FatalError != undefined) {
+            delete data;
             return [{
                 "FatalError": "Fatal Error: " + rowsets.FatalError
             }];
@@ -983,7 +992,8 @@ var miiUtils = miiUtils || {
         $div = $("<div>").css({
             "width": "400px",
             "height": "320px",
-            "z-index": 1200
+            "z-index": 1200,
+            "padding-left" : "12px"
         }).attr({
             "id": "popupTrend"
         });
