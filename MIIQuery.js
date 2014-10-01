@@ -41,7 +41,6 @@
 
         var $self = this;
 
-
         var defaults = {
 
             title: "Default Title",
@@ -852,8 +851,8 @@ var miiUtils = miiUtils || {
                                 }
                                 tagInfo.Data = rs.Row;
                                 tagInfo.LookupColumn = column.Name;
-                                var aggString = column.Name.substring(0, column.Name.indexOf("_"));
-                                if (aggString.match(/(AVG|TOT|SUM|MIN|MAX|Average|Total|Sum)/)) {
+                                var aggString = column.Name.substring(0, column.Name.indexOf("_")).toLowerCase();
+                                if (aggString.match(/(avg|tot|sum|min|max|average|total|sum)/)) {
                                     tagInfo.Aggregation = aggString;
                                 } else {
                                     tagInfo.Aggregation = "None";
@@ -1004,6 +1003,12 @@ var miiUtils = miiUtils || {
         var ed = new Date();
         var sd = new Date();
         sd.setDate(ed.getDate() - 30);
+        ed.setHours(7);
+        ed.setMinutes(0);
+        ed.setSeconds(0);
+        sd.setHours(7);
+        sd.setMinutes(0);
+        sd.setSeconds(0);
 
         var qt = "";
         var qParams = {};

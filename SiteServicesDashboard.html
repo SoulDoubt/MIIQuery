@@ -1,0 +1,1641 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<HEAD>
+    <TITLE>Leach Plant Dashboard</TITLE>
+    <META http-equiv="X-UA-Compatible" content="IE=edge">
+    <META http-equiv='cache-control' content='no-cache'>
+    <META http-equiv='expires' content='0'>
+    <META http-equiv='pragma' content='no-cache'>
+
+    <SCRIPT type="text/javascript" src="/XMII/JavaScript/bootstrap.js" data-libs="i5Chart,i5Grid"></SCRIPT>
+    <script type="text/javascript" src="./scripts/MIIQuery.js"></script>
+    <script type="text/javascript" src="./scripts/utils.mii.js"></script>
+    <script type="text/javascript" src="./scripts/jquery.ui.datepicker.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/jquery.jqplot.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.canvasTextRenderer.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.canvasAxisLabelRenderer.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.dateAxisRenderer.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.barRenderer.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.pieRenderer.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.categoryAxisRenderer.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.pointLabels.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.highlighter.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.canvasAxisTickRenderer.min.js"></script>
+    <link rel="stylesheet" href="./styles/styles.css" media="screen"/>
+    <link rel="stylesheet" href="./styles/printstyles.css" media="print"/>
+    <link rel="stylesheet" href="./scripts/jqPlot/jquery.jqplot.min.css" />
+    <link rel="stylesheet" href="./styles/bootstrap.css" />
+    <script type="text/javascript" src="./scripts/jquery.print-preview.js"></script>
+
+    <!--[if lt IE 9]>
+<script src="./scripts/modernizr-2.6.2.js"></script>
+<script src="./scripts/es5polyfills.js"></script>
+<script src="./scripts/jqPlot/excanvas.js"></script>
+<script src="./scripts/respond.min.js"></script>
+<script src="./scripts/css3-mediaqueries.js"></script>
+<link href="./styles/jquery.ui.1.10.0.ie.css" rel="stylesheet" />
+<![endif]-->
+
+
+
+    <script type="text/javascript">
+    var date_format = 'dd-M-yy';
+
+    // CHART holders
+    var summaryChart = null;
+    var oeeChart = null;
+    var meAvailabilityChart = null;
+    var downtimeChart = null;
+    var downtimeByPlantChart = null;
+
+
+    $(document).ready(function() {
+
+        // setup the print button
+
+    $('#pPrev').append('<a class="print-preview">Print this page</a>');
+     $('a.print-preview').printPreview();
+
+        $("#btnPrint").on('click', function(e){
+            window.print();
+           /* var print_window = window.open();
+            var print_content = $("#pageContent").clone();
+            print_window.document.open();
+            print_window.document.write(print_content.html());*/
+        });
+
+        var today = new Date();
+        today.setHours(0);
+        today.setMinutes(0);
+        today.setSeconds(0);
+        if (typeof jQuery.ui != undefined) {
+            $("#dateSelector").datepicker({
+                changeMonth: true,
+                changeYear: true,
+                yearRange: '2014:2020',
+                dateFormat: date_format,
+                defaultDate: today,
+                onSelect: function() {
+                    dateChanged($("#dateSelector").datepicker("getDate"));
+                }
+            });
+
+            var t = $.datepicker.formatDate(date_format, today);
+            $("#dateSelector").val(t);
+        }
+
+        var testDate = $("#dateSelector").datepicker("getDate");
+        var minDate = firstDayOfMonth(testDate);
+        var maxDate = lastDayOfMonth(testDate);
+
+
+        var monthlySummaryChartOptions = {
+            title: 'Monthly Summary',
+            axes: {
+                xaxis: {
+                    renderer: $.jqplot.DateAxisRenderer,
+                    tickOptions: {
+                        formatString: '%d-%b-%Y'
+                    },
+                    label: 'Date',
+                    min: minDate,
+                    max: maxDate,
+                    pad: 1.2
+                },
+                yaxis: {
+                    label: 'Tonnes',
+                    min: 0,
+                    max: 6000,
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                },
+                y2axis: {
+                    min: 0,
+                    max: 500
+                }
+            },
+            series: [{
+                label: "Nickel - Sum",
+                color: "#007E7A",
+                renderer: $.jqplot.BarRenderer,
+                rendererOptions: {
+                    fillToZero: true,
+                    barMargin: 5,
+                    barWidth: 25
+                },
+                yaxis: 'yaxis'
+            }, {
+                label: "Daily Nickel",
+                lineWidth: 2,
+                color: "blue",
+                markerOptions: {
+                    show: true
+                },
+                pointLabels: {
+                    show: true
+                },
+                yaxis: 'y2axis'
+            }, {
+                label: "Daily Ni Target",
+                lineWidth: 2,
+                color: "red",
+                markerOptions: {
+                    show: false
+                },
+                yaxis: 'y2axis'
+            }, {
+                label: "Target - Sum",
+                lineWidth: 2,
+                color: "#000000",
+                markerOptions: {
+                    show: false
+                },
+                yaxis: 'yaxis'
+            }],
+            highlighter: {
+                show: true
+
+            },
+            cursor: {
+                show: false
+            },
+            legend: {
+                show: true,
+                location: "nw",
+                placement: "insideGrid"
+            },
+            grid: {
+                background: "#FFFFFF"
+            }
+        };
+
+        summaryChart = $("#monthSummary").miiJQPlot(null, monthlySummaryChartOptions, getMonthlyProductionData(testDate));
+
+        var pams = miiUtils.createPcoAggregateQueryParams([new miiUtils.TagData('55-CONS-JI-13CC13B2-24HU-TOT')], minDate, maxDate);
+        var oeeQueryOptions = {
+            queryParams: pams,
+            /*queryParams: {
+                "TagName.1": "55-CONS-JI-13CC13B2-24HU-TOT",
+                "StartDate": toMIIQueryDate(minDate),
+                "EndDate": toMIIQueryDate(maxDate)
+            },*/
+            queryTemplate: "Long Harbour PIMS/DailyAvgPcoQuery",
+            waitText: "Loading OEE..."
+        };
+
+        var oeeChartOptions = {
+            title: 'Leach Plant OEE',
+            axes: {
+                xaxis: {
+                    renderer: $.jqplot.DateAxisRenderer,
+                    label: 'Day',
+                    tickOptions: {
+                        formatString: '%d-%b-%Y'
+                    },
+                    min: minDate,
+                    max: maxDate,
+                    pad: 2.0
+                },
+                yaxis: {
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                    label: 'Percentage(%)'
+                }
+            },
+            series: [{
+                label: "Actual",
+                lineWidth: 2,
+                color: "#007E7A",
+                markerOptions: {
+                    show: false
+                }
+            }, {
+                label: "Target",
+                lineWidth: 2,
+                color: "#ECB11F",
+                markerOptions: {
+                    show: false
+                },
+
+            }],
+            highlighter: {
+                show: true,
+                sizeAdjust: 10.5
+            },
+            cursor: {
+                show: false
+            },
+            grid: {
+                background: "#FFFFFF"
+            },
+            legend: {
+                show: true,
+                location: "se",
+                placement: "insideGrid"
+            }
+        };
+        var oeeTarget = getTargetPoints(95, minDate, maxDate);
+        oeeChart = $("#theOeeChart").miiJQPlot(oeeQueryOptions, oeeChartOptions, null, oeeTarget);
+
+
+
+        var productivityChartOptions = {
+            title: 'Productivity',
+            axes: {
+                xaxis: {
+                    renderer: $.jqplot.DateAxisRenderer,
+                    label: 'Day',
+                    tickOptions: {
+                        formatString: '%d-%b-%Y',
+                    },
+                    min: minDate,
+                    max: maxDate,
+                    pad: 10.0
+                },
+                yaxis: {
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                    label: 'Percentage(%)'
+                }
+            },
+            series: [{
+                label: "Actual",
+                lineWidth: 2,
+                color: "#007E7A",
+                markerOptions: {
+                    show: true
+                }
+            }, {
+                label: "Target",
+                lineWidth: 2,
+                color: "#ECB11F",
+                markerOptions: {
+                    show: false
+                },
+
+            }],
+            highlighter: {
+                show: true,
+                sizeAdjust: 10.5
+            },
+            cursor: {
+                show: false
+            },
+            grid: {
+                background: "#FFFFFF"
+            },
+            legend: {
+                show: true,
+                location: "se",
+                placement: "insideGrid"
+            }
+        };
+
+        meAvailabilityChart = $("#meAvailablity").miiJQPlot(null, productivityChartOptions, getProductivityData(testDate), null);
+
+        var downtimeChartOptions = {
+            title: 'Downtime Losses',
+            axes: {
+                xaxis: {
+                    renderer: $.jqplot.DateAxisRenderer,
+                    label: 'Day',
+                    tickOptions: {
+                        formatString: '%d-%b-%Y',
+                        angle: -30
+                    },
+                    min: minDate,
+                    max: maxDate
+                },
+                yaxis: {
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                    label: 'Percentage(%)'
+                }
+            },
+            series: [{
+                label: "Availability",
+                lineWidth: 2,
+                color: "#007E7A",
+                markerOptions: {
+                    show: true
+                }
+            }, {
+                label: "Utilization",
+                lineWidth: 2,
+                color: "red",
+                markerOptions: {
+                    show: true
+                }
+            }, {
+                label: "Target",
+                lineWidth: 2,
+                color: "#ECB11F",
+                markerOptions: {
+                    show: false
+                },
+
+            }],
+            highlighter: {
+                show: true,
+                sizeAdjust: 10.5
+            },
+            cursor: {
+                show: false
+            },
+            grid: {
+                background: "#FFFFFF"
+            },
+            legend: {
+                show: true,
+                location: "s",
+                placement: "insideGrid"
+
+            }
+        };
+        downtimeChart = $("#downtimeLosses").miiJQPlot(null, downtimeChartOptions, getDowntimeLossesData(testDate), null);
+
+        var downtimeByAreaData = [
+            [
+                ['Concentrate', 3.2],
+                ['POL', 1.4],
+                ['LRT/CCD', 1],
+                ['WLN', 1.5],
+                ['IR1', 2],
+                ['PEN', 0.5],
+                ['ETP', 1.5]
+            ]
+        ];
+
+        var downtimeByAreaChartOptions = {
+
+            seriesDefaults: {
+                renderer: $.jqplot.PieRenderer,
+                rendererOptions: {
+                    showDataLabels: true,
+                    sliceMargin: 2,
+                    dataLabels: 'value',
+                    dataLabelFormatString: '%.1f'
+                },
+            },
+            title: 'System Daily Downtime (hrs)',
+            legend: {
+                show: true,
+                location: 'e',
+                placement: 'inside',
+                renderer: $.jqplot.EnhancedLegendRenderer,
+                rendererOptions: {
+                    numberRows: 4,
+
+                }
+            },
+            grid: {
+                background: "#FFFFFF"
+            }
+        };
+
+        downtimeByPlantChart = $("#downtimeByArea").miiJQPlot(null, downtimeByAreaChartOptions, downtimeByAreaData, null);
+
+        drawStreamInventories(testDate);
+        buildProcessWaterConsumption(testDate);
+
+        layoutOperatingTankVolumes("#tankVols");
+        //createPlantInfo("#plantInfo");
+
+        setTimeout(function() {
+            piTest(testDate);
+        }, 10);
+        setTimeout(function() {
+            buildPEN360(testDate)
+        }, 12);
+        setTimeout(function() {
+            buildBoronRemoval(testDate);
+        }, 20);
+        buildPOLTrain2(testDate);
+        buildResidueStorageArea(testDate);
+        buildAnolyteDistribution(testDate);
+        buildLRTCCD308(testDate);
+        build310WLN(testDate);
+        buildResidueFiltration(testDate);
+        buildIR1312(testDate);
+        buildETP372(testDate);
+        buildSumpOnlineTime(testDate);
+        buildResidueFiltrationChart(testDate);
+        buildExtractionLosses(testDate);
+        buildFeedQuality(testDate);
+        buildResidueFiltration2(testDate);
+
+        buildReagentsTableStandard('Soda Ash', 'sodaAsh');
+        buildReagentsTableStandard('H2SO4', 'h2so4');
+        buildReagentsTableStandard('Flocculant', 'floc');
+        buildReagentsTableStandard('NaCl', 'nacl');
+        buildReagentsTableStandard('Caustic', 'caustic');
+        buildReagentsTableStandard('Coagulant (FeCl3)', 'coag');
+
+
+        buildLeachPlantSolidsInventory2("Leach Residue Thickener", randomize(200, 250), randomize(2, 12), "solidsInv", false);
+        buildLeachPlantSolidsInventory("PEN 2 Clarifier", randomize(200, 250), randomize(2, 12), "pen2clar", false);
+        buildLeachPlantSolidsInventory("CCD #1 Thickener", randomize(200, 250), randomize(2, 12), "ccd1thick", false);
+        buildLeachPlantSolidsInventory("IR1 Thickener", randomize(200, 250), randomize(2, 12), "ir1thick", false);
+        buildLeachPlantSolidsInventory("WLN Thickener", randomize(200, 250), randomize(2, 12), "wlnthick", false);
+        buildLeachPlantSolidsInventory("SLN Underflow Tank", randomize(200, 250), randomize(2, 12), "slnunderflow", true);
+        buildLeachPlantSolidsInventory("WLN Filter Feed Tank", randomize(200, 250), randomize(2, 12), "wlnfilter", true);
+        buildLeachPlantSolidsInventory("IR1 Filter Feed Tank", randomize(200, 250), randomize(2, 12), "ir1filter", true);
+        buildLeachPlantSolidsInventory("HD Feed Storage Tank", randomize(200, 250), randomize(2, 12), "hdfeed", true);
+        buildLeachPlantSolidsInventory("Washed Leach/Fe Residue Tank", randomize(200, 250), randomize(2, 12), "washed", true);
+
+        createInventoryVariance("#mainnistream", "Main Ni Stream");
+        createInventoryVariance("#weaknistream", "Weak Ni Stream");
+
+
+
+    });
+
+    function getProductivityData(dt) {
+        var daily = monthsWorthOfDailyData(60.0, 100.0, dt);
+        var pruned = [];
+        for (var i = 0; i < daily.length; i++) {
+            if (daily[i][0] <= dt) {
+                pruned.push(daily[i]);
+            }
+        }
+        var target = getTargetPoints(95, dt);
+        var data = [pruned, target];
+        return data;
+    }
+
+    function getDowntimeLossesData(dt) {
+        var actual = monthsWorthOfDailyData(25, 90, dt);
+        var util = monthsWorthOfDailyData(25, 100, dt);
+        var target = getTargetPoints(95, dt);
+        var pAct = [];
+        var uAct = [];
+        for (var i = 0; i < actual.length; i++) {
+            if (actual[i][0] <= dt) {
+                pAct.push(actual[i]);
+                uAct.push(util[i]);
+            }
+        }
+
+        var data = [pAct, uAct, target];
+        return data;
+    }
+
+    function dateChanged(dt) {
+        var sd = firstDayOfMonth(dt);
+        var ed = dt;
+        if (oeeChart != null) {
+            var oeeOpts = {
+                resetAxes: ['xaxis'],
+                axes: {
+                    xaxis: {
+                        min: sd,
+                        max: lastDayOfMonth(dt)
+                    }
+                },
+                queryParams: {
+                    "StartDate": toMIIQueryDate(sd),
+                    "EndDate": toMIIQueryDate(ed)
+                },
+                additionalData: getTargetPoints(95, sd, lastDayOfMonth(dt))
+            }
+            oeeChart.UpdateChart(oeeOpts);
+        }
+
+
+        if (downtimeChart != null) {
+            var opts = {
+                data: getDowntimeLossesData(dt),
+                resetAxes: ['xaxis'],
+                axes: {
+                    xaxis: {
+                        min: sd,
+                        max: lastDayOfMonth(dt)
+                    }
+                }
+            };
+            downtimeChart.UpdateChart(opts);
+
+        }
+
+        if (summaryChart != null) {
+            var newData = getMonthlyProductionData(dt);
+            var opts = {
+                data: newData,
+                resetAxes: ['xaxis'],
+                axes: {
+                    xaxis: {
+                        min: sd,
+                        max: lastDayOfMonth(dt)
+                    }
+                }
+            };
+            summaryChart.UpdateChart(opts);
+        }
+
+        if (meAvailabilityChart != null) {
+            var newData = getProductivityData(dt);
+            var opts = {
+                data: newData,
+                resetAxes: ['xaxis'],
+                axes: {
+                    xaxis: {
+                        min: sd,
+                        max: lastDayOfMonth(dt)
+                    }
+                }
+            };
+            meAvailabilityChart.UpdateChart(opts);
+        }
+        drawStreamInventories(dt);
+        setTimeout(function() {
+            piTest(testDate);
+        }, 10);
+        setTimeout(function() {
+            buildPEN360(testDate)
+        }, 12);
+        setTimeout(function() {
+            buildBoronRemoval(dt);
+        }, 20);
+        buildPOLTrain2(dt);
+        buildResidueStorageArea(dt);
+        buildAnolyteDistribution(dt);
+        buildLRTCCD308(dt);
+        build310WLN(dt);
+        buildResidueFiltration(dt);
+        buildIR1312(dt);
+        buildETP372(dt);
+        buildSumpOnlineTime(dt);
+        buildResidueFiltrationChart(dt);
+        buildExtractionLosses(dt);
+        buildFeedQuality(dt);
+        buildResidueFiltration2(dt);
+
+
+    }
+
+    function buildProcessWaterConsumption(dt) {
+        var cons242 = [40, 40.8, 42, 39.2, 40.4, 44.8, 42];
+        var cons221 = [63, 64.26, 66.15, 61.74, 63.63, 70.56, 66.15];
+        var cons222 = [6, 6.12, 6.3, 5.88, 6.06, 6.72, 6.3];
+        var cons223 = [165, 168.3, 173.25, 161.7, 166.65, 184.8, 173.25];
+
+        var data = [cons242, cons221, cons222, cons223];
+
+        var chartOptions = {
+            title: "Process Water Consumption",
+            stackSeries: true,
+            captureRightClick: true,
+            seriesDefaults: {
+                renderer: $.jqplot.BarRenderer,
+                rendererOptions: {
+                    // Put a 30 pixel margin between bars.
+                    barMargin: 10,
+                    // Highlight bars when mouse button pressed.
+                    // Disables default highlighting on mouse over.
+                    highlightMouseDown: true
+                },
+                pointLabels: {
+                    show: true
+                }
+            },
+            series: [{
+                    label: "242",
+                    color: "#00B0CA"
+                }, {
+                    label: "221",
+                    color: "#007E7A"
+                }, {
+                    label: "222",
+                    color: "#ECB11F"
+                }, {
+                    label: "#223"
+                }
+
+            ],
+            axes: {
+                xaxis: {
+                    renderer: $.jqplot.CategoryAxisRenderer
+                },
+                yaxis: {
+                    // Don't pad out the bottom of the data range.  By default,
+                    // axes scaled as if data extended 10% above and below the
+                    // actual range to prevent data points right on grid boundaries.
+                    // Don't want to do that here.
+                    padMin: 0,
+                    label: "Avg Process Water in Use (m3/h)",
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+                }
+            },
+            legend: {
+                show: true,
+                location: 'e',
+                placement: 'inside'
+            }
+        };
+
+        $("#processWaterCons").miiJQPlot(null, chartOptions, data, null);
+
+    }
+
+    function layoutOperatingTankVolumes(selector) {
+        var $div = $(selector);
+
+        var concTank = createTank("Conc Feed Tank", randomize(35, 90), randomize(10, 30), 25, 90, "#007E7A", "65px");
+        var acFeedTank = createTank("AC Feed Tank #2", randomize(35, 90), randomize(50, 125), 150, 90, "#007E7A", "65px");
+        var connector = createRConnector(125, 140, 25);
+        var plsTank = createTank("PLS Storage Tank", randomize(35, 94), randomize(60, 99), 275, 90, "#007E7A");
+        var plsConnector = createRConnector(250, 140, 25);
+        var polishedTank = createTank("Polished PLS Tank", randomize(35, 94), randomize(60, 99), 400, 90, "#007E7A");
+        var polishedConn = createRConnector(375, 140, 25);
+        $div.append(concTank);
+        $div.append(connector);
+        $div.append(acFeedTank);
+        $div.append(plsTank);
+        $div.append(plsConnector);
+        $div.append(polishedTank);
+        $div.append(polishedConn);
+
+
+        var repulpTank = createTank("WLN Feed Tank", randomize(0, 50), randomize(20, 50), 620, 10);
+        var wlnRepulpTank = createTank("WLN Repulp Tank", randomize(0, 50), randomize(20, 50), 620, 120);
+        var anolyteTank = createTank("Anolyte Storage Tank", randomize(0, 50), randomize(20, 50), 620, 230);
+        $div.append(repulpTank);
+        $div.append(wlnRepulpTank);
+        $div.append(anolyteTank);
+    }
+
+    function createPlantInfo(selector) {
+        var acot = randomize(0, 75) + "%/day";
+        var niewprod = randomize(23, 92) + "%";
+        var acfeedrate = randomize(0, 5000) + "&nbsp;t/h";
+        var niewflow = randomize(100, 300) + "&nbsp;m<sup>3</sup>/h";
+        var tbl = ["<table style='width: 100%;'>",
+            "<tr>",
+            "<td class='valeth' colspan='2'>In Process Inventory Variance</td>",
+            "<td colspan='2'>",
+            "</tr>",
+            "<tr>",
+            "<td>AC Operating Time</td>",
+            "<td>" + acot + "</td>",
+            "<td>Ni EW Productivity</td>",
+            "<td>" + niewprod + "</td>",
+            "</tr>",
+            "<tr>",
+            "<td>AC Feed Rate</td>",
+            "<td>" + acfeedrate + "</td>",
+            "<td>Ni EW Flow Rate</td>",
+            "<td>" + niewflow + "</td>",
+            "</tr>",
+            "</table>"
+        ];
+        $htm = $(tbl.join(" "));
+        $(selector).append($htm);
+    }
+
+    var avgTemplate = "Long Harbour PIMS/DailyAvgTagQuery";
+    var avgPcoTemplate = "Long Harbour PIMS/DailyAvgPcoQuery";
+    var totTemplate = "Long Harbour PIMS/DailyTotTagQuery";
+    var totPcoTemplate = "Long Harbour PIMS/DailyTotPcoQuery";
+    var currentValTemplate = "Long Harbour PIMS/CurrentValueTagQuery";
+
+    function piTest(dt) {
+        var onlineTimeTag = new miiUtils.TagData('', 'Online Time', '%', 75, 0);
+        var acSolidsTag = new miiUtils.TagData('8572-221306-DI-25211-AI', '% Solids in AC Feed Tank', '%', 50, 1);
+        var o2consTag = new miiUtils.TagData('8572-221440-FI-25051-AI', 'O2 Consumption', 't', 82, 2);
+        var h2consTag = new miiUtils.TagData('8572-221440-FI-20016-AI', 'H2SO4 Consumption', 't', 9, 3);
+        var totalSolidsFeedTag = new miiUtils.TagData('8572-221306-FIC-25210-PV', 'Total Solid Feed', 't', 168, 4);
+
+        var dates = getDailyDates(dt);
+        var avgParams = miiUtils.createPcoAggregateQueryParams([acSolidsTag], dates.start, dates.end);
+        var totParams = miiUtils.createPcoAggregateQueryParams([o2consTag, h2consTag, totalSolidsFeedTag], dates.start, dates.end);
+
+        var opts = {
+            title: "306 - POL",
+            queryTemplates: [{
+                template: avgPcoTemplate,
+                params: avgParams,
+                tags: [acSolidsTag]
+            }, {
+                template: totPcoTemplate,
+                params: totParams,
+                tags: [o2consTag, h2consTag, totalSolidsFeedTag, onlineTimeTag]
+            }]
+
+        };
+        $("#pol306").piDataGridHTML(opts);
+
+    }
+
+    function buildPEN360(dt) {
+        var onlineTimeTag = new miiUtils.TagData('', 'Online Time', '%', 75, 0);
+        var pen2phTag = new miiUtils.TagData('8572-223360-AIC-40623-PV', 'pH PEN2', 'pH', 10.0, 1);
+        var clarTorqueTag = new miiUtils.TagData('8572-223360-OI-40830-AI', 'PEN 2 Clarifier Torque', '%', 25, 2);
+        var turbTag = new miiUtils.TagData('8572-223360-AI-40873-AI', 'PEN 2 Clarifier O/F Turbidity', 'NTU', 1.0, 3);
+        var rakeTag = new miiUtils.TagData('8572-223360-ZI-40830-AI', 'PEN 2 Clarifier Rake Height', 'cm', 0, 4);
+        var dates = getDailyDates(dt);
+
+        var params = miiUtils.createPcoAggregateQueryParams([pen2phTag, clarTorqueTag, rakeTag, turbTag], dates.start, dates.end);
+
+        var opts = {
+            title: "360 - PEN",
+            queryTemplates: [{
+                template: avgPcoTemplate,
+                params: params,
+                tags: [pen2phTag, clarTorqueTag, rakeTag, turbTag, onlineTimeTag]
+            }]
+
+        };
+        $("#pen360").piDataGridHTML(opts);
+
+
+    }
+
+    function buildBoronRemoval(dt) {
+        var onlineTimeTag = new miiUtils.TagData('', 'Online Time', '%', 75, 0);
+        var termPH = new miiUtils.TagData('8572-223360-AIC-41143-PV', 'Terminal pH (24h Average)', 'pH', 10.0, 1);
+        var rsaFlowCurrent = new miiUtils.TagData('8572-223360-FIC-41670-PV', 'Flow to RSA (Current)', 'm3/h', 400, 2);
+        var rsaFlowTotal = new miiUtils.TagData('8572-223360-FIC-41670-PV', 'Flow to RSA (24h Total)', 'm3', 400, 3);
+        var solidFlowCurrent = new miiUtils.TagData('8572-223360-FIC-41040-PV', 'Solid Flow to RSA (Current)', 'm3/h', 50, 4);
+        var solidFlowTotal = new miiUtils.TagData('8572-223360-FIC-41040-PV', 'Solid Flow to RSA (24h Total)', 'm3/h', 50, 5);
+
+        var tags = [termPH, rsaFlowCurrent, rsaFlowTotal, solidFlowCurrent, solidFlowTotal];
+
+        var dates = getDailyDates(dt);
+
+        var avgParams = miiUtils.createTagQueryParams([termPH], dates.start, dates.end);
+        var currentParams = miiUtils.createTagQueryParams([rsaFlowCurrent, solidFlowCurrent], dates.start, dates.end);
+        var totalParams = miiUtils.createTagQueryParams([rsaFlowTotal, solidFlowTotal], dates.start, dates.end);
+
+        var templates = [avgTemplate, currentValTemplate, totTemplate];
+        var params = [avgParams, currentParams, totalParams];
+
+        var options = {
+            queryTemplates: [{
+                template: avgTemplate,
+                params: avgParams,
+                tags: [termPH]
+            }, {
+                template: currentValTemplate,
+                params: currentParams,
+                tags: [rsaFlowCurrent, solidFlowCurrent, onlineTimeTag]
+            }, {
+                template: totTemplate,
+                params: totalParams,
+                tags: [rsaFlowTotal, solidFlowTotal]
+            }],
+            title: "360 - Boron Removal"
+        };
+
+        $("#boron360").piDataGridHTML(options);
+    }
+
+    function buildPOLTrain2(dt) {
+        var dates = getDailyDates(dt);
+        var onlineTimeTag = new miiUtils.TagData('', 'Online Time', '%', 71, 0);
+        var acFeed = new miiUtils.TagData('8572-221306-FI-25210-AI', 'Feed to Autoclave', 'm3/h', 8, 1);
+        var solidFeed = new miiUtils.TagData('8572-221306-FIC-25210-PV', 'Solid Feed', 't/h', 7, 2);
+        var o2solidTag = new miiUtils.TagData('', 'O2 kg/t of solid', '', 480, 3);
+        var h2acTag = new miiUtils.TagData('', 'H2 in AC vent gas conc', '%', 60, 4);
+        var avgTempTag = new miiUtils.TagData('', 'Average Temp', '&deg;C', 150, 5);
+        var maxTempTag = new miiUtils.TagData('', 'Max Temp', '&deg;C', 153, 6);
+        var niPLSTag = new miiUtils.TagData('', 'Ni in PLS', 'g/L', 105, 7);
+        var h2so4InPLSTag = new miiUtils.TagData('', 'H2SO4 in PLS', 'g/L', 3, 8);
+        var niLeachTag = new miiUtils.TagData('', 'Ni in Leach Residue', '%', 0.50, 9);
+
+
+        var avgParams = miiUtils.createTagQueryParams([acFeed, solidFeed, onlineTimeTag, o2solidTag, h2acTag, avgTempTag], dates.start, dates.end);
+
+        var tags = [acFeed, solidFeed, onlineTimeTag, o2solidTag, h2acTag, avgTempTag, maxTempTag, niPLSTag, h2so4InPLSTag, niLeachTag];
+
+        var options = {
+            queryTemplates: [{
+                template: avgTemplate,
+                params: avgParams,
+                tags: tags
+            }],
+            title: "306 - POL Train #2"
+        }
+
+        $("#pol306Train2").piDataGridHTML(options);
+    }
+
+    function buildResidueStorageArea(dt) {
+        var rsaBarData = [280, 285.6, 294, 274.4, 282.8, 313.6, 294];
+        var rsaLineData = [50.1, 50.1, 50, 50, 50, 49.9, 49.8];
+        var months = ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
+
+        var chartOptions = {
+            title: "Residue Storage Area",
+            series: [{
+                label: "Delta RSA",
+                renderer: $.jqplot.BarRenderer,
+                rendererOptions: {
+                    // Put a 30 pixel margin between bars.
+                    barMargin: 10,
+                    // Highlight bars when mouse button pressed.
+                    // Disables default highlighting on mouse over.
+                    highlightMouseDown: true
+                },
+                pointLabels: {
+                    show: false
+                },
+                yaxis: 'yaxis'
+            }, {
+                label: "RSA Level",
+                yaxis: 'y2axis',
+                color: "#FF0000"
+            }],
+            axes: {
+                xaxis: {
+                    renderer: $.jqplot.CategoryAxisRenderer,
+                    ticks: months
+                },
+                yaxis: {
+                    // Don't pad out the bottom of the data range.  By default,
+                    // axes scaled as if data extended 10% above and below the
+                    // actual range to prevent data points right on grid boundaries.
+                    // Don't want to do that here.
+                    padMin: 0,
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                    min: 240,
+                    max: 320
+                },
+                y2axis: {
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                    min: 49.6,
+                    max: 50.2,
+                    tickOptions: {
+                        formatString: '%3.2f'
+                    }
+                }
+            },
+            legend: {
+                show: true,
+                location: 'n',
+                placement: 'inside'
+            }
+        };
+
+        $("#residueStorageArea").miiJQPlot(null, chartOptions, [rsaBarData, rsaLineData], null);
+
+    }
+
+    function buildAnolyteDistribution(dt) {
+        var anoDistData = [
+            [
+                ["POL", 21.0],
+                ["HD", 36.0],
+                ["WLN", 43.0]
+            ]
+        ];
+
+        var chartOptions = {
+            seriesDefaults: {
+                renderer: $.jqplot.PieRenderer,
+                rendererOptions: {
+                    showDataLabels: true,
+                    sliceMargin: 2,
+                    dataLabels: 'value',
+                    dataLabelFormatString: '%.1f'
+                },
+            },
+            title: 'Anolyte Distribution',
+            legend: {
+                show: true,
+                location: 'e',
+                placement: 'inside',
+                renderer: $.jqplot.EnhancedLegendRenderer,
+                rendererOptions: {
+                    numberRows: 3,
+
+                }
+            },
+            grid: {
+                background: "#FFFFFF"
+            }
+        };
+
+        $("#anolyteDist").miiJQPlot(null, chartOptions, anoDistData, null);
+    }
+
+    function drawStreamInventories(dt) {
+        var sd = sevenDaysAgo(dt);
+        var niTonsRich = getDailyData(50, 150, sd, dt);
+        var niTonsWeak = getDailyData(50, 150, sd, dt);
+        var richNickelStream = getDailyData(18000, 24000, sd, dt);
+        var weakNickelStream = getDailyData(18000, 24000, sd, dt);
+        var niTarget = getTargetPoints(109.6, sd, dt);
+        var volTarget = getTargetPoints(20552.37, sd, dt);
+
+        var richData = [richNickelStream, niTonsRich, niTarget, volTarget];
+        var weakData = [weakNickelStream, niTonsWeak, niTarget, volTarget];
+
+        var richChartOptions = {
+            title: 'Leach Plant - Rich Ni Stream Inventory',
+            axes: {
+                xaxis: {
+                    renderer: $.jqplot.DateAxisRenderer,
+                    rendererOptions: {
+                        tickRenderer: $.jqplot.CanvasAxisTickRenderer,                        
+                    },
+                    tickOptions: {
+                        formatString: '%d-%b-%Y',
+                        angle: 0
+                         
+                    },
+                    label: 'Day',
+                    min: sd,
+                    max: dt
+                },
+                yaxis: {
+                    label: 'Volume (m3)',
+                    min: 15000,
+                    max: 26000,
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+                },
+                y2axis: {
+                    min: 0,
+                    max: 140,
+                    label: 'Tonnes',
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+                }
+            },
+            series: [{
+                label: "Rich Ni",
+                color: "#007E7A",
+                renderer: $.jqplot.BarRenderer,
+                rendererOptions: {
+                    fillToZero: true,
+                    barMargin: 5,
+                    barWidth: 40
+                },
+                yaxis: 'yaxis'
+            }, {
+                label: "Ni (tons)",
+                lineWidth: 2,
+                color: "red",
+                markerOptions: {
+                    show: false
+                },
+                pointLabels: {
+                    show: true
+                },
+                yaxis: 'y2axis'
+            }, {
+                label: "Target Ni",
+                lineWidth: 2,
+                color: "violet",
+                markerOptions: {
+                    show: false
+                },
+                yaxis: 'y2axis'
+            }, {
+                label: "Target Vol",
+                yaxis: 'yaxis'
+            }],
+            highlighter: {
+                show: true
+            },
+            cursor: {
+                show: false
+            },
+            legend: {
+                show: true,
+                location: "e",
+                placement: "outsideGrid"
+            },
+            grid: {
+                background: "#FFFFFF"
+            }
+        };
+
+        $("#inventories").miiJQPlot(null, richChartOptions, richData, null);
+
+        var weakChartOptions = {
+            title: 'Leach Plant - Weak Ni Stream Inventory',
+            axes: {
+                xaxis: {
+                    renderer: $.jqplot.DateAxisRenderer,
+                    /*rendererOptions: {
+                        tickRenderer: $.jqplot.CanvasAxisTickRenderer
+                    },*/
+                    tickOptions: {
+                        formatString: '%d-%b-%Y'
+                    },
+                    label: 'Day',
+                    min: sd,
+                    max: dt
+                },
+                yaxis: {
+                    label: 'Volume',
+                    min: 0,
+                    max: 30000,
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+
+                },
+                y2axis: {
+                    min: 0,
+                    max: 160,
+                    label: 'Tonnes',
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+
+                }
+            },
+            series: [{
+                label: "Weak Ni Stream",
+                color: "#00B0CA",
+                renderer: $.jqplot.BarRenderer,
+                rendererOptions: {
+                    fillToZero: true,
+                    barMargin: 5,
+                    barWidth: 25
+                },
+                yaxis: 'yaxis'
+            }, {
+                label: "Ni Tons",
+                lineWidth: 2,
+                color: "red",
+                markerOptions: {
+                    show: false
+                },
+                pointLabels: {
+                    show: true
+                },
+                yaxis: 'y2axis'
+            }, {
+                label: "Target Ni",
+                lineWidth: 2,
+                color: "violet",
+                markerOptions: {
+                    show: false
+                },
+                yaxis: 'y2axis'
+            }, {
+                label: "Target Vol",
+                yaxis: 'yaxis'
+            }],
+            highlighter: {
+                show: true
+            },
+            cursor: {
+                show: false
+            },
+            legend: {
+                show: true,
+                location: "e",
+                placement: "outsideGrid"
+            },
+            grid: {
+                background: "#FFFFFF"
+            }
+        };
+
+        $("#weakInventories").miiJQPlot(null, weakChartOptions, weakData, null);
+
+    }
+
+    function buildLRTCCD308(dt) {
+        var dates = getDailyDates(dt);
+        var onlineTimeTag = new miiUtils.TagData('', 'Online Time', '%', 71, 0);
+        var lrtUFSolidTag = new miiUtils.TagData('8572-222308-DIC-10051-PV', 'LRT avg U/F % Solid', '%', 50, 1);
+        var lrtRakeTorqueTag = new miiUtils.TagData('8572-222308-OI-10030-AI', 'LRT Rake Torque', '%', 25, 2);
+        var lrtRakeHeightTag = new miiUtils.TagData('8572-222308-ZI-10030-AI', 'LRT Rake Height', 'cm', 0, 3);
+        var ccdFlowRLSTag = new miiUtils.TagData('8572-221308-FIC-20259-PV', 'CCD1 Flow to RLS', 'm3/h', 30, 4);
+        var lrtBedWeightTag = new miiUtils.TagData('8572-222308-WIC-10038-PV', 'LRT Bed Weight', 't', 200, 5);
+        var lrtPPMSolidsTag = new miiUtils.TagData('');
+        var residueTransferTag = new miiUtils.TagData('8572-222308-DI-10251-AI', 'Residue Transfer to IR1 (24 h)', 't', '', 6);
+
+        var currentTags = [lrtUFSolidTag, lrtRakeTorqueTag, lrtRakeHeightTag, ccdFlowRLSTag, lrtBedWeightTag, onlineTimeTag];
+
+        var currentParams = miiUtils.createTagQueryParams(currentTags, dates.start, dates.end);
+        var totParams = miiUtils.createTagQueryParams([residueTransferTag], dates.start, dates.end);
+
+        var options = {
+            queryTemplates: [{
+                template: currentValTemplate,
+                params: currentParams,
+                tags: currentTags
+            }, {
+                template: totTemplate,
+                params: totParams,
+                tags: [residueTransferTag]
+            }],
+            title: '308 - LRT and CCD'
+        };
+
+        $("#lrt308").piDataGridHTML(options);
+    }
+
+    function build310WLN(dt) {
+        var dates = getDailyDates(dt);
+        var onlineTimeTag = new miiUtils.TagData('', 'Online Time', '%', '71%', 0);
+
+        var termPHTag = new miiUtils.TagData('8572-223310-AIC-10443A-PV', 'Terminal pH (24h Avg)', 'ph', 8.0, 4);
+        var wlnRakeTorqueTag = new miiUtils.TagData('8572-223310-NI-10630-AI', 'WLN Thickener Rake Torque', '%', 25, 5);
+        var wlnRakeHeightTag = new miiUtils.TagData('8572-223310-ZI-10630-AI', 'WLN Thickener Rake Height', 'cm', 0, 6);
+        var wlmTurbidityTag = new miiUtils.TagData('8572-223310-AI-10692-AI', 'WLN Thickener O/F Turbidity', 'NTU', 1.0, 7);
+
+        var currentTags = [wlnRakeTorqueTag, wlnRakeHeightTag, wlmTurbidityTag, onlineTimeTag];
+
+        var currentParams = miiUtils.createTagQueryParams(currentTags, dates.start, dates.end);
+        var avgParams = miiUtils.createTagQueryParams([termPHTag], dates.start, dates.end);
+
+        var options = {
+            title: '310 WLN',
+            queryTemplates: [{
+                template: avgTemplate,
+                params: avgParams,
+                tags: [termPHTag]
+            }, {
+                template: currentValTemplate,
+                params: currentParams,
+                tags: currentTags
+            }]
+        };
+
+        $("#wln310").piDataGridHTML(options);
+    }
+
+    function buildIR1312(dt) {
+        var dates = getDailyDates(dt);
+
+        var ottag = new miiUtils.TagData('', 'Online Time', '%', 71, 0);
+        var tag1 = new miiUtils.TagData('', 'Feed Flow', 'm<sup>3</sup>/h', 80, 1);
+        var tag2 = new miiUtils.TagData('', '[Fe]', 'mg/L', 100, 2);
+        var tag3 = new miiUtils.TagData('', '[Ni]', 'g/L', 95, 3);
+        var tag4 = new miiUtils.TagData('', 'Wash Efficiency', '%', 40, 4);
+        var tag5 = new miiUtils.TagData('8572-241440-FFIC-20010-PV', '02 Flowrate', 'kg/h', 350, 5);
+        var tag6 = new miiUtils.TagData('8572-223312-FI-20820-AI', 'Water Evaporated (24h Avg)', 't/h', 6, 6);
+        var tag7 = new miiUtils.TagData('8572-223312-AIC-20223A-PV', 'Final pH', 'pH', 5.5, 7);
+        var tag8 = new miiUtils.TagData('8572-223312-OI-21620-AI', 'IR1 Thickener Torque', '%', 30, 8);
+        var tag9 = new miiUtils.TagData('8572-223312-ZI-21620-AI', 'IR1 Thickener Rake Height', 'cm', 0, 9);
+        var tag10 = new miiUtils.TagData('', 'Avg TSS in Polished PLS', 'mg/L', 2, 9);
+        var testLimsTag = new miiUtils.LimsData('221-COOLINGWATER', 'LH-PH', 'Cooling Water pH', 'pH', '', 10);
+        var nextLimsTag = new miiUtils.LimsData('412-PS-POND-WATER', 'LH-PH', 'Plant Stormwater Pond pH', 'pH', '', 11);
+
+        var tags = [ottag, tag1, tag2, tag3, tag4, tag5, tag6, tag7, tag8, tag9, tag10];
+        var avgParams = miiUtils.createTagQueryParams(tags, dates.start, dates.end);
+        var limsParams = miiUtils.createLIMSQueryParams([testLimsTag, nextLimsTag], dates.start, dates.end);
+
+        var options = {
+            title: '312 - IR1',
+            queryTemplates: [{
+                template: avgTemplate,
+                params: avgParams,
+                tags: tags
+            }, {
+                template: "Long Harbour PIMS/LIMSValueQuery",
+                params: limsParams,
+                tags: [testLimsTag, nextLimsTag]
+            }]
+        };
+
+        $("#ir1312").piDataGridHTML(options);
+    }
+
+    function buildETP372(dt) {
+        var dates = getDailyDates(dt);
+        var ottag = new miiUtils.TagData('', 'Online Time', '%', 71, 0);
+        var tag1 = new miiUtils.TagData('', 'Decant to ETP', 'm<sup>3</sup>/h', '', 1);
+        var tag2 = new miiUtils.TagData('', 'Plant Stormwater Flow', 'm<sup>3</sup>/h', '', 2);
+        var tag3 = new miiUtils.TagData('', 'Plant Stormwater Level', '%', 23, 3);
+        var tag4 = new miiUtils.TagData('', 'Wash Efficiency', '%', 40, 4);
+        var tag5 = new miiUtils.TagData('8572-223372-AIC-52053-PV', 'TEP Neutralization pH', 'pH', '9.5-10.5', 5);
+        var tag6 = new miiUtils.TagData('8572-223372-AIC-52053-PV', 'ETP Treated Effluent Turbidity', 'NTU', 1, 6);
+        var tag7 = new miiUtils.TagData('8572-223372-AIC-53223-PV', 'ETP Treated Effluent pH', 'pH', '7-8.5', 7);
+        var tag8 = new miiUtils.TagData('8572-223310-FIC-10060-PV', 'Ocean Outfall Flowrate', 'm<sup>3</sup>/h', '', 8);
+        var tag9 = new miiUtils.TagData('', 'Ocean Outfall pH', 'pH', '7-8.5', 9);
+        var tag10 = new miiUtils.TagData('', 'Ocean Outfall Turbidity', 'NTU', 1, 9);
+        var tag11 = new miiUtils.TagData('', 'As', 'mg/L', '<0.5', 10);
+        var tag12 = new miiUtils.TagData('', 'Cu', 'mg/L', '<0.3', 11);
+        var tag13 = new miiUtils.TagData('', 'Pb', 'mg/L', '<0.2', 12);
+        var tag14 = new miiUtils.TagData('', 'Ni', 'mg/L', '<0.5', 13);
+        var tag15 = new miiUtils.TagData('', 'Zn', 'mg/L', '<0.5', 14);
+        var tag16 = new miiUtils.TagData('', 'TSS', 'mg/L', '<15', 15);
+
+        var tags = [ottag, tag1, tag2, tag3, tag4, tag5, tag6, tag7, tag8, tag9, tag10, tag11, tag12, tag13, tag14, tag15, tag16];
+        var avgParams = miiUtils.createTagQueryParams(tags, dates.start, dates.end);
+
+        var options = {
+            title: '372 - ETP',
+            queryTemplates: [{
+                template: avgTemplate,
+                params: avgParams,
+                tags: tags
+            }]
+        };
+
+        $("#etp372").piDataGridHTML(options);
+
+    }
+
+    function buildSumpOnlineTime(dt) {
+        var dates = getDailyDates(dt);
+
+        var tag306 = new miiUtils.TagData('', '(306)', '%', '', 0);
+        tag306.Data = [{
+            "306": 10
+        }];
+        tag306.LookupColumn = "306";
+
+        var tag312 = new miiUtils.TagData('', '(312)', '%', '', 0);
+        tag312.Data = [{
+            "312": 4
+        }];
+        tag312.LookupColumn = "312";
+
+        var tag308 = new miiUtils.TagData('', '(308)', '%', '', 0);
+        tag308.Data = [{
+            "308": 5
+        }];
+        tag308.LookupColumn = "308";
+
+        var tag360 = new miiUtils.TagData('', '(360)', '%', '', 0);
+        tag360.Data = [{
+            "360": 2
+        }];
+        tag360.LookupColumn = "360";
+
+        var tag310 = new miiUtils.TagData('', '(310)', '%', '', 0);
+        tag310.Data = [{
+            "310": 10
+        }];
+        tag310.LookupColumn = "310";
+
+        var tags = [tag306, tag310, tag360, tag308, tag312];
+
+        var params = miiUtils.createTagQueryParams(tags, dates.start, dates.end);
+
+        var options = {
+            title: 'Sump Pumps Online Time',
+            columnNames: ['Measure', 'Value'],
+            queryTemplates: [{
+                template: avgTemplate,
+                params: params,                
+                tags: tags
+            }]
+        };
+
+        $("#sumpOnline").piDataGridHTML(options);
+
+    }
+
+    function buildExtractionLosses(dt) {
+        var ed = dt;
+        var sd = sevenDaysAgo(dt);
+        var exNiData = getDailyData(91.2, 99.9, sd, ed);
+        var exCoData = getDailyData(86.1, 99.9, sd, ed);
+        var exCuData = getDailyData(71.0, 79.8, sd, ed);
+        var lossNiData = getDailyData(0.7, 1.0, sd, ed);
+        var lossCuFeData = getDailyData(92.3, 99.9, sd, ed);
+        var lossPenData = getDailyData(0.1, 1.4, sd, ed);
+
+        var len = exNiData.length;
+
+        var html = ["<table class='fakeGrid'><tr><td class='blank'></td><td colspan='3' class='valeth center'>Extraction</td><td colspan='3' class='valeth center'>Ni Loss</td></tr>"];
+        html.push("<tr><td class='blank'></td><td class='border center'>Ni (%)</td><td class='border center'>Co (%)</td><td class='border center'>Cu (%)</td><td class='border center'>Leach Residue (wt %Ni)</td><td class='border center'>Cu/Fe Residue (wt %Ni)</td><td class='border center'>PEN Effluent</td></tr>");
+        html.push("<tr><td class='valeth center'>Date</td><td class='valeth center'>Daily Avg</td><td class='valeth center'>Daily Avg</td><td class='valeth center'>Daily Avg</td><td class='valeth center'>Daily Avg</td><td class='valeth center'>Daily Avg</td><td class='valeth center'>Daily Avg</td></tr>");
+        html.push("<tr><td class='valeth center'>Target</td><td class='border center'>96%</td><td class='border center'>93%</td><td class='border center'>74%</td><td class='border center'>0.9%</td><td class='border center'>0.2%</td><td class='border center'>0.2 mg/L</td></tr>");
+
+        for (var i = 0; i < len; i++) {
+            var dat = new Date(sd);
+            dat.setDate(sd.getDate() + i);
+            var datStr = $.datepicker.formatDate(date_format, dat);
+            html.push("<tr><td class='valeth center'>" + datStr + "</td>");
+            html.push("<td class='border center'>" + exNiData[i][1].toFixed(1) + "</td>");
+            html.push("<td class='border center'>" + exCoData[i][1].toFixed(1) + "</td>");
+            html.push("<td class='border center'>" + exCuData[i][1].toFixed(1) + "</td>");
+            html.push("<td class='border center'>" + lossNiData[i][1].toFixed(1) + "</td>");
+            html.push("<td class='border center'>" + lossCuFeData[i][1].toFixed(1) + "</td>");
+            html.push("<td class='border center'>" + lossPenData[i][1].toFixed(1) + "</td>");
+            html.push("</tr>");
+        }
+
+        html.push("</table>");
+
+        var tbl = $(html.join(" "));
+        $("#ExtractionLosses").empty();
+        $("#ExtractionLosses").append(tbl);
+
+    }
+
+    function buildResidueFiltration2(dt) {
+        var html = ["<table class='fakeGrid'><tr><td class='valeth'>Leach Residue Filtration</td><td class='valeth'>Actual</td><td class='valeth'>Target</td></tr>"];
+        html.push("<tr><td>Leach Residue Filtration (24h)</td><td></td><td></td></tr>");
+        html.push("<tr><td>1st Wash Addition (24h)</td><td></td><td></td></tr>");
+        html.push("<tr><td>2nd Wash Addition (24h)</td><td></td><td></td></tr>");
+        var $tbl = $(html.join(" "));
+        $("#residuefiltration").empty();
+        $("#residuefiltration").append($tbl);
+
+    }
+
+    function buildFeedQuality(dt) {
+        var elems = ['Ni', 'Co', 'Fe', 'Cu', 'Si'];
+        var html = ["<table class='fakeGrid'><tr><td class='blank'></td><td class='valeth center' colspan='3'>Feed Quality to Refinery</td></tr>"];
+        html.push("<tr><td class='blank'></td><td class='valeth center' colspan='3'>Iron Removal 1 to NiEW</td></tr>");
+        html.push("<tr><td class='blank'></td><td class='border center'>Average (5 day)</td><td class='border center'>Actual</td><td class='border center'>Target</td></tr>");
+        for (var i = 0; i < elems.length; i++) {
+            html.push("<tr>");
+            html.push("<td class='valeth center'>" + elems[i] + "</td>");
+            html.push("<td class='center border'>" + randomize(0, 97) + "&nbsp;g/L</td>");
+            html.push("<td class='center border'>" + randomize(0, 97) + "&nbsp;mg/L</td>");
+            html.push("<td class='center border'>" + randomize(0, 97) + "&nbsp;mg/L</td>");
+            html.push("</tr>");
+        }
+        html.push("</table>");
+        $tbl = $(html.join(" "));
+        $("#feedquality").empty();
+        $("#feedquality").append($tbl);
+
+    }
+
+    function buildResidueFiltration(dt) {
+        var dates = getDailyDates(dt);
+
+        var filterBatchesTag = new miiUtils.TagData('', '# Filter Press Batches per 24h', '', '3', 0);
+        var solidsFilteredTag = new miiUtils.TagData('', 'Solids Filtered (24h)', 't', 15, 1);
+
+        var params = miiUtils.createTagQueryParams([filterBatchesTag, solidsFilteredTag], dates.start, dates.end);
+
+        var options = {
+            title: 'Cu/Fe Residue Filtrarion',
+            queryTemplates: [{
+                template: currentValTemplate,
+                params: params,
+                tags: [filterBatchesTag, solidsFilteredTag]
+            }]
+        };
+
+        $("#lpfiltration").piDataGridHTML(options);
+
+    }
+
+    function buildResidueFiltrationChart(dt) {
+        var data = [
+            [17, 8, 13, 34, 23, 3]
+        ];
+
+        var chartOptions = {
+            title: "Cu/Fe Residue Production",
+            series: [{
+                label: "Production",
+                renderer: $.jqplot.BarRenderer,
+                rendererOptions: {
+                    // Put a 30 pixel margin between bars.
+                    barMargin: 10,
+                    // Highlight bars when mouse button pressed.
+                    // Disables default highlighting on mouse over.
+                    highlightMouseDown: true
+                },
+                pointLabels: {
+                    show: false
+                },
+                yaxis: 'yaxis'
+            }],
+            axes: {
+                xaxis: {
+                    renderer: $.jqplot.CategoryAxisRenderer
+                    //ticks: months
+                },
+                yaxis: {
+                    // Don't pad out the bottom of the data range.  By default,
+                    // axes scaled as if data extended 10% above and below the
+                    // actual range to prevent data points right on grid boundaries.
+                    // Don't want to do that here.
+                    label: 'Wet Tonnes',
+                    padMin: 0,
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                    min: 0,
+                    max: 40
+                }
+            },
+            legend: {
+                show: false,
+                location: 'n',
+                placement: 'inside'
+            },
+            highlighter: {
+                show: true
+            }
+        };
+        $.jqplot("lpfiltrationChart", data, chartOptions);
+        //$("#lpFiltrationChart").miiJQPlot(null, chartOptions, data, null);
+    }
+    </script>
+
+
+</HEAD>
+
+<BODY>
+
+    <table class="pageHeader" id="tblHeader">
+        <tr>
+            <td>
+                <a href="#">
+                    <img src="./images/logo.png" alt="Vale Logo" width="80px" />
+                </a>
+            </td>
+            <td style="vertical-align: bottom;">
+                <a class="navbar-brand" href="#">
+          Long Harbour - Leach Plant Dashboard</a>
+            </td>
+            <td>
+                <label for="dateSelector">Date:</label>
+                <input type="text" class="form-control" id="dateSelector">
+            </td>
+            <td style="width: 700px;">
+        <div id="pPrev"></div>
+                <button id="btnPrint">Print</button>
+            </td>
+
+        </tr>
+    </table>
+
+    <div id="pageContent">
+    <table class="outerLayout">
+        <tr>
+            <td>
+                <table class="innerLayout">
+                    <tr>
+                        <td colspan="4" class="areaHeader">LHPP Overview: Plant Production</td>
+                    </tr>
+                    <tr>
+                        <td colspan="4">
+                            <div id="monthSummary" class="dashPanel" style="height: 300px; width: 1600px;"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" class="areaHeader">Site Services Overview Summary</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <div class="dashPanel" id="theOeeChart" style="height: 200px; width: 800px;"></div>
+                            <table>
+                                <tr>
+                                    <td>
+                                        <div class="dashPanel" id="meAvailablity" style="height: 250px; width: 400px;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="dashPanel" id="downtimeLosses" style="height: 250px; width: 400px;"></div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div id="ExtractionLosses" style="width: 100%;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="dashPanel" id="downtimeByArea" style="height: 250px; width: 400px; margin-bottom: 5px;"></div>
+                                        <div id="feedquality"></div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td colspan="2" style="margin-bottom: 5px;">
+                            <div style="width: 800px;">
+                                <table class="tankVols">
+                                    <tr>
+                                        <td colspan="2" class="center" style="font-weight: bold;">Tank Operating Volumes</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="width:66%;" class="valeGreen">Rich Nickel Stream</td>
+                                        <td class="valeGold">Weak Nickel Stream</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <div id="tankVols" class="leachAbsoluteWrapper">
+                                            </div>
+                                            <div id="plantInfo">
+                                                <table style="width: 100%; margin: 5px;">
+                                                    <tr>
+                                                        <td colspan="2" style="font-weight: bold; padding-left: 10px; border: 1px solid;">In Process Inventory Variance</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>
+                                                            <div id="mainnistream" style="border: 1px solid;"></div>
+                                                        </td>
+                                                        <td>
+                                                            <div id="weaknistream" style="border: 1px solid;"></div>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="dashPanel" id="inventories" style="height: 250px;"></div>
+                            <div class="dashPanel" id="weakInventories" style="height: 250px;"></div>
+                        </td>
+                    </tr>                    
+                </table>
+            </td>
+            <td>
+                <table>
+                    <tr>
+                        <td colspan='3' class='areaHeader'>Key Parameters Per System</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div id="pol306" class="kpp"></div>
+                            <div id="pol306Train2" class="kpp"></div>
+                            <div id="processWaterCons" style="width: 300px; height: 250px;" class="dashPanel"></div>
+                            <div id="sumpOnline" style="width: 300px;" class="kpp"></div>
+                        </td>
+                        <td>
+                            <div id="lrt308" class="kpp"></div>
+                            <div id="wln310" class="kpp"></div>
+                            <div id="ir1312" class="kpp"></div>
+                            <div id="anoDistKPP" class="kpp"></div>
+                            <div id="anolyteDist" class="dashPanel" style="width: 300px; height: 250px;"></div>
+                        </td>
+                        <td>
+                            <div id="pen360" class="kpp"></div>
+                            <div id="boron360" class="kpp"></div>
+                            <div id="residueStorageArea" style="width: 300px; height: 250px; margin-bottom: 8px;" class="dashPanel"></div>
+                            <div id="etp372" class="kpp"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <div class="areaHeader" style="width: 100%; margin-bottom: 5px;">Leach Plant Solids Inventory</div>
+                            <table style="width: 100%;">
+                                <tr>
+                                    <td>
+                                        <div id="solidsInv"></div>
+                                    </td>
+                                    <td>
+                                        <div id="pen2clar"></div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div id="ccd1thick"></div>
+                                    </td>
+                                    <td>
+                                        <div id="ir1thick"></div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div id="wlnthick"></div>
+                                    </td>
+                                    <td>
+                                        <div id="slnunderflow"></div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div id="wlnfilter"></div>
+                                    </td>
+                                    <td>
+                                        <div id="ir1filter"></div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div id="hdfeed"></div>
+                                    </td>
+                                    <td>
+                                        <div id="washed"></div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>
+                            <div class="areaHeader" style="width: 100%; margin-bottom: 5px;">Leach Plant Filtration</div>
+                            <div id="lpfiltration"></div>
+                            <div id="lpfiltrationChart" style="width: 300px; height: 200px; margin-bottom: 5px;" class="dashPanel"></div>
+                            <div id="residuefiltration"></div>
+                        </td>
+                    </tr>                   
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="4" class="areaHeader">Reagents - Ops Planning</td>
+        </tr>
+        <tr>
+            <td>
+            <table>
+                <tr>
+                    <td>
+                        <div id="sodaAsh"></div>
+                        <div id="h2so4"></div>
+                    </td>
+                    <td>
+                        <div id="floc"></div>
+                        <div id="nacl"></div>
+                    </td>
+                    <td>
+                        <div id="caustic"></div>
+                        <div id="coag"></div>
+                    </td>
+                </tr>
+            </table>
+            </td>
+            <td colspan="3"></td>
+        </tr>
+    </table>
+    </div>
+
+</BODY>
+
+</HTML>
