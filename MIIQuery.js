@@ -463,7 +463,7 @@
                     this._data.push(options.additionalData);
                 }
                 this.chartObject.replot({
-                    data: _data,
+                    data: this._data,
                     resetAxes: options.resetAxes,
                     axes: options.axes
                 });
@@ -472,12 +472,12 @@
 
                 // an MII query will be used to populate _data
                 // clear any existing data from this object
-                _data = null;
+                this._data = null;
                 if (this.chartObject != null) {
                     if (options.data !== undefined && $.isArray(options.data)) {
                         _data = options.data;
                     }
-                    if (_data === null) {
+                    if (this._data === null) {
                         if (this.Options.queryTemplate !== undefined && this.Options.queryTemplate != "") {
                             miiUtils.miiQuery(this.Options.queryTemplate, newParams, bSend, success, error, updateComplete);
                         } else {
@@ -487,7 +487,7 @@
                     } else {
                         if (this.AdditionalData != null) {
                             if ($.isArray(this.AdditionalData)) {
-                                _data.push(this.AdditionalData);
+                                this._data.push(this.AdditionalData);
                             }
                         }
 
@@ -822,7 +822,7 @@ var miiUtils = miiUtils || {
                 var rowsetCount = rowsets.Rowset.length
                 for (var j = 0; j < rowsetCount; j++) {
                     var rs = rowsets.Rowset[j];
-                    // if no Tag property is present on the tagInfo object, we are not sealing with a PI tag...
+                    // if no Tag property is present on the tagInfo object, we are not dealing with a PI tag...
                     if (tagInfo.Source === "LIMS") {
                         if (rs.Row !== undefined) {
                             var testRow = rs.Row[0];

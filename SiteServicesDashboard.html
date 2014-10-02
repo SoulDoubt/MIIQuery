@@ -12,7 +12,7 @@
     <script type="text/javascript" src="./scripts/MIIQuery.js"></script>
     <script type="text/javascript" src="./scripts/utils.mii.js"></script>
     <script type="text/javascript" src="./scripts/jquery.ui.datepicker.js"></script>
-    <script type="text/javascript" src="./scripts/jqPlot/jquery.jqplot.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/jquery.jqplot.js"></script>
     <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.canvasTextRenderer.min.js"></script>
     <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.canvasAxisLabelRenderer.min.js"></script>
     <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.dateAxisRenderer.min.js"></script>
@@ -22,8 +22,8 @@
     <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.pointLabels.min.js"></script>
     <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.highlighter.min.js"></script>
     <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.canvasAxisTickRenderer.min.js"></script>
-    <link rel="stylesheet" href="./styles/styles.css" media="screen"/>
-    <link rel="stylesheet" href="./styles/printstyles.css" media="print"/>
+    <link rel="stylesheet" href="./styles/styles.css" media="screen" />
+    <link rel="stylesheet" href="./styles/printstyles.css" media="print" />
     <link rel="stylesheet" href="./scripts/jqPlot/jquery.jqplot.min.css" />
     <link rel="stylesheet" href="./styles/bootstrap.css" />
     <script type="text/javascript" src="./scripts/jquery.print-preview.js"></script>
@@ -54,12 +54,12 @@
 
         // setup the print button
 
-    $('#pPrev').append('<a class="print-preview">Print this page</a>');
-     $('a.print-preview').printPreview();
+        $('#pPrev').append('<a class="print-preview">Print this page</a>');
+        $('a.print-preview').printPreview();
 
-        $("#btnPrint").on('click', function(e){
+        $("#btnPrint").on('click', function(e) {
             window.print();
-           /* var print_window = window.open();
+            /* var print_window = window.open();
             var print_content = $("#pageContent").clone();
             print_window.document.open();
             print_window.document.write(print_content.html());*/
@@ -73,7 +73,7 @@
             $("#dateSelector").datepicker({
                 changeMonth: true,
                 changeYear: true,
-                yearRange: '2014:2020',
+                yearRange: '2012:2100',
                 dateFormat: date_format,
                 defaultDate: today,
                 onSelect: function() {
@@ -545,10 +545,10 @@
         }
         drawStreamInventories(dt);
         setTimeout(function() {
-            piTest(testDate);
+            piTest(dt);
         }, 10);
         setTimeout(function() {
-            buildPEN360(testDate)
+            buildPEN360(dt)
         }, 12);
         setTimeout(function() {
             buildBoronRemoval(dt);
@@ -933,12 +933,12 @@
                 xaxis: {
                     renderer: $.jqplot.DateAxisRenderer,
                     rendererOptions: {
-                        tickRenderer: $.jqplot.CanvasAxisTickRenderer,                        
+                        tickRenderer: $.jqplot.CanvasAxisTickRenderer,
                     },
                     tickOptions: {
                         formatString: '%d-%b-%Y',
                         angle: 0
-                         
+
                     },
                     label: 'Day',
                     min: sd,
@@ -1268,7 +1268,7 @@
             columnNames: ['Measure', 'Value'],
             queryTemplates: [{
                 template: avgTemplate,
-                params: params,                
+                params: params,
                 tags: tags
             }]
         };
@@ -1393,7 +1393,7 @@
             axes: {
                 xaxis: {
                     renderer: $.jqplot.CategoryAxisRenderer
-                    //ticks: months
+                        //ticks: months
                 },
                 yaxis: {
                     // Don't pad out the bottom of the data range.  By default,
@@ -1426,7 +1426,7 @@
 
 <BODY>
 
-    <table class="pageHeader" id="tblHeader">
+    <table class="pageHeader" id="tblHeader" style="width: 2400px;">
         <tr>
             <td>
                 <a href="#">
@@ -1442,7 +1442,7 @@
                 <input type="text" class="form-control" id="dateSelector">
             </td>
             <td style="width: 700px;">
-        <div id="pPrev"></div>
+                <div id="pPrev"></div>
                 <button id="btnPrint">Print</button>
             </td>
 
@@ -1450,47 +1450,134 @@
     </table>
 
     <div id="pageContent">
-    <table class="outerLayout">
-        <tr>
-            <td>
-                <table class="innerLayout">
-                    <tr>
-                        <td colspan="4" class="areaHeader">LHPP Overview: Plant Production</td>
-                    </tr>
-                    <tr>
-                        <td colspan="4">
-                            <div id="monthSummary" class="dashPanel" style="height: 300px; width: 1600px;"></div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="4" class="areaHeader">Site Services Overview Summary</td>
-                    </tr>
-                    <tr>
-                        <td colspan="2">
-                            <div class="dashPanel" id="theOeeChart" style="height: 200px; width: 800px;"></div>
-                            <table>
-                                <tr>
-                                    <td>
-                                        <div class="dashPanel" id="meAvailablity" style="height: 250px; width: 400px;"></div>
-                                    </td>
-                                    <td>
-                                        <div class="dashPanel" id="downtimeLosses" style="height: 250px; width: 400px;"></div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div id="ExtractionLosses" style="width: 100%;"></div>
-                                    </td>
-                                    <td>
-                                        <div class="dashPanel" id="downtimeByArea" style="height: 250px; width: 400px; margin-bottom: 5px;"></div>
-                                        <div id="feedquality"></div>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                        <td colspan="2" style="margin-bottom: 5px;">
-                            <div style="width: 800px;">
-                                <table class="tankVols">
+        <table class="outerLayout" style="width: 2400px;">
+            <tr>
+                <td class="areaHeader" style="width: 1600px;">
+                    LHPP Overview: Plant Production
+                </td>
+                <td class='areaHeader'>
+                    Key Parameters Per System
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div id="monthSummary" class="dashPanel" style="height: 300px; width: 1600px;"></div>
+                </td>
+                <td rowspan="3">
+                    <table>
+                        <tr>
+                            <td>
+                                <div id="pol306" class="kpp"></div>
+                                <div id="pol306Train2" class="kpp"></div>
+                                <div id="processWaterCons" style="width: 300px; height: 250px;" class="dashPanel"></div>
+                                <div id="sumpOnline" style="width: 300px;" class="kpp"></div>
+                            </td>
+                            <td>
+                                <div id="lrt308" class="kpp"></div>
+                                <div id="wln310" class="kpp"></div>
+                                <div id="ir1312" class="kpp"></div>
+                                <div id="anoDistKPP" class="kpp"></div>
+                                <div id="anolyteDist" class="dashPanel" style="width: 300px; height: 250px;"></div>
+                            </td>
+                            <td>
+                                <div id="pen360" class="kpp"></div>
+                                <div id="boron360" class="kpp"></div>
+                                <div id="residueStorageArea" style="width: 300px; height: 250px; margin-bottom: 8px;" class="dashPanel"></div>
+                                <div id="etp372" class="kpp"></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <div class="areaHeader" style="width: 100%; margin-bottom: 5px;">Leach Plant Solids Inventory</div>
+                                <table style="width: 100%;">
+                                    <tr>
+                                        <td>
+                                            <div id="solidsInv"></div>
+                                        </td>
+                                        <td>
+                                            <div id="pen2clar"></div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div id="ccd1thick"></div>
+                                        </td>
+                                        <td>
+                                            <div id="ir1thick"></div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div id="wlnthick"></div>
+                                        </td>
+                                        <td>
+                                            <div id="slnunderflow"></div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div id="wlnfilter"></div>
+                                        </td>
+                                        <td>
+                                            <div id="ir1filter"></div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div id="hdfeed"></div>
+                                        </td>
+                                        <td>
+                                            <div id="washed"></div>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                            </td>
+                            <td>
+                                <div class="areaHeader" style="width: 100%; margin-bottom: 5px;">Leach Plant Filtration</div>
+                                <div id="lpfiltration"></div>
+                                <div id="lpfiltrationChart" style="width: 300px; height: 200px; margin-bottom: 5px;" class="dashPanel"></div>
+                                <div id="residuefiltration"></div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td class="areaHeader">Leach Plant Overview Summary</td>
+            </tr>
+            <tr>
+                <td>
+                    <table style="width: 100%;">
+                        <tr>
+                            <td>
+                                <table style="width: 800px;">
+                                    <tr>
+                                        <td colspan="2">
+                                            <div class="dashPanel" id="theOeeChart" style="height: 200px; width: 800px;"></div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="dashPanel" id="meAvailablity" style="height: 250px; width: 400px;"></div>
+                                        </td>
+                                        <td>
+                                            <div class="dashPanel" id="downtimeLosses" style="height: 250px; width: 400px; float: right;"></div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div id="ExtractionLosses" style="width: 100%;"></div>
+                                            <div id="feedquality"></div>
+                                        </td>
+                                        <td>
+                                            <div class="dashPanel" id="downtimeByArea" style="height: 250px; width: 400px; margin-bottom: 5px;"></div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td>
+                                <table class="tankVols" style="width: 800px;">
                                     <tr>
                                         <td colspan="2" class="center" style="font-weight: bold;">Tank Operating Volumes</td>
                                     </tr>
@@ -1520,120 +1607,119 @@
                                         </td>
                                     </tr>
                                 </table>
-                            </div>
-                            <div class="dashPanel" id="inventories" style="height: 250px;"></div>
-                            <div class="dashPanel" id="weakInventories" style="height: 250px;"></div>
-                        </td>
-                    </tr>                    
-                </table>
-            </td>
-            <td>
-                <table>
-                    <tr>
-                        <td colspan='3' class='areaHeader'>Key Parameters Per System</td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div id="pol306" class="kpp"></div>
-                            <div id="pol306Train2" class="kpp"></div>
-                            <div id="processWaterCons" style="width: 300px; height: 250px;" class="dashPanel"></div>
-                            <div id="sumpOnline" style="width: 300px;" class="kpp"></div>
-                        </td>
-                        <td>
-                            <div id="lrt308" class="kpp"></div>
-                            <div id="wln310" class="kpp"></div>
-                            <div id="ir1312" class="kpp"></div>
-                            <div id="anoDistKPP" class="kpp"></div>
-                            <div id="anolyteDist" class="dashPanel" style="width: 300px; height: 250px;"></div>
-                        </td>
-                        <td>
-                            <div id="pen360" class="kpp"></div>
-                            <div id="boron360" class="kpp"></div>
-                            <div id="residueStorageArea" style="width: 300px; height: 250px; margin-bottom: 8px;" class="dashPanel"></div>
-                            <div id="etp372" class="kpp"></div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="2">
-                            <div class="areaHeader" style="width: 100%; margin-bottom: 5px;">Leach Plant Solids Inventory</div>
-                            <table style="width: 100%;">
-                                <tr>
-                                    <td>
-                                        <div id="solidsInv"></div>
-                                    </td>
-                                    <td>
-                                        <div id="pen2clar"></div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div id="ccd1thick"></div>
-                                    </td>
-                                    <td>
-                                        <div id="ir1thick"></div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div id="wlnthick"></div>
-                                    </td>
-                                    <td>
-                                        <div id="slnunderflow"></div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div id="wlnfilter"></div>
-                                    </td>
-                                    <td>
-                                        <div id="ir1filter"></div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div id="hdfeed"></div>
-                                    </td>
-                                    <td>
-                                        <div id="washed"></div>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                        <td>
-                            <div class="areaHeader" style="width: 100%; margin-bottom: 5px;">Leach Plant Filtration</div>
-                            <div id="lpfiltration"></div>
-                            <div id="lpfiltrationChart" style="width: 300px; height: 200px; margin-bottom: 5px;" class="dashPanel"></div>
-                            <div id="residuefiltration"></div>
-                        </td>
-                    </tr>                   
-                </table>
-            </td>
-        </tr>
-        <tr>
-            <td colspan="4" class="areaHeader">Reagents - Ops Planning</td>
-        </tr>
-        <tr>
-            <td>
-            <table>
-                <tr>
-                    <td>
-                        <div id="sodaAsh"></div>
-                        <div id="h2so4"></div>
-                    </td>
-                    <td>
-                        <div id="floc"></div>
-                        <div id="nacl"></div>
-                    </td>
-                    <td>
-                        <div id="caustic"></div>
-                        <div id="coag"></div>
-                    </td>
-                </tr>
-            </table>
-            </td>
-            <td colspan="3"></td>
-        </tr>
-    </table>
+                                <div class="dashPanel" id="inventories" style="height: 250px;"></div>
+                                <div class="dashPanel" id="weakInventories" style="height: 250px;"></div>
+                            </td>
+                        </tr>
+                    </table>
+            </tr>
+            <tr>
+                <td colspan="2" class="areaHeader">Reagents - Ops Planning</td>
+            </tr>
+            <tr>
+                <td>
+                    <table>
+                        <tr>
+                            <td>
+                                <div id="sodaAsh"></div>
+                                <div id="h2so4"></div>
+                            </td>
+                            <td>
+                                <div id="floc"></div>
+                                <div id="nacl"></div>
+                            </td>
+                            <td>
+                                <div id="caustic"></div>
+                                <div id="coag"></div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td></td>
+            </tr>
+        </table>
+
+
+
+        <!--   <tr>
+              <td colspan="2">
+          
+                  <table>
+                      <tr>
+          
+                      </tr>
+                      <tr>
+                          <td>
+                              
+                          </td>
+                          <td>
+                              
+                              
+                          </td>
+                      </tr>
+                  </table>
+              </td>
+              <td colspan="2" style="margin-bottom: 5px;">
+                  <div style="width: 800px;">
+                      <table class="tankVols">
+                          <tr>
+                              <td colspan="2" class="center" style="font-weight: bold;">Tank Operating Volumes</td>
+                          </tr>
+                          <tr>
+                              <td style="width:66%;" class="valeGreen">Rich Nickel Stream</td>
+                              <td class="valeGold">Weak Nickel Stream</td>
+                          </tr>
+                          <tr>
+                              <td colspan="2">
+                                  <div id="tankVols" class="leachAbsoluteWrapper">
+                                  </div>
+                                  <div id="plantInfo">
+                                      <table style="width: 100%; margin: 5px;">
+                                          <tr>
+                                              <td colspan="2" style="font-weight: bold; padding-left: 10px; border: 1px solid;">In Process Inventory Variance</td>
+                                          </tr>
+                                          <tr>
+                                              <td>
+                                                  <div id="mainnistream" style="border: 1px solid;"></div>
+                                              </td>
+                                              <td>
+                                                  <div id="weaknistream" style="border: 1px solid;"></div>
+                                              </td>
+                                          </tr>
+                                      </table>
+                                  </div>
+                              </td>
+                          </tr>
+                      </table>
+                  </div>
+               
+              </td>
+          </tr>
+                  </table>
+                  </td>
+                  <td>
+          
+          <tr>
+              <td colspan="2">
+                 
+              </td>
+              <td>
+                  
+              </td>
+          </tr>
+          </table>
+                  </td>
+                  </tr>
+                  <tr>
+          <td colspan="4" class="areaHeader">Reagents - Ops Planning</td>
+                  </tr>
+                  <tr>
+          <td>
+             
+          </td>
+          <td colspan="3"></td>
+                  </tr> -->
+
     </div>
 
 </BODY>
