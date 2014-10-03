@@ -193,10 +193,24 @@
                 result.fail(function(xhr, status, errorThrown) {
                     //alert("Deferred fail called with this many args: " + arguments.length);
                     $self.empty();
-                    var $msg = $("<span>").css({
-                        "color": "red"
-                    }).text(opts.title + " Error: " + status);
-                    $self.append($msg);
+                    var $table = $('<table/>');
+                    $table.addClass('fakeGrid');
+                    var $headerTr = $('<tr/>');
+                    $headerTr.append($("<td/>").attr("colspan", opts.columnNames.length).addClass("gridTitle").text(opts.title));
+                    $table.append($headerTr)                        
+                    var clen = opts.columnNames.length;
+                    var $colNameTr = $("<tr/>");
+                    for (var c = 0; c < clen; c++) {
+                        var $td = $("<td/>").addClass("gridHeader").text(opts.columnNames[c]);
+                        $colNameTr.append($td);                        
+                    }
+                    $table.append($colNameTr);
+                    var $dataTr = $("<tr/>");
+                    var $dataTd = $("<td/>").attr("colspan", opts.columnNames.length).css({ "color" : "red" }).text("An Error Occurred - " + status);
+                    $dataTr.append($dataTd);
+                    $table.append($dataTr);
+                    $self.append($table);                   
+
                 });
             }
         }
@@ -294,7 +308,7 @@
             var $headerTr = $('<tr/>');
             $headerTr.append($("<td/>").attr("colspan", opts.columnNames.length).addClass("gridTitle").text(opts.title));
             $table.append($headerTr)
-            //$table.append($("<tr><td colspan='" + opts.columnNames.length + "' class='gridTitle'>" + opts.title + "</td></tr><tr>");
+                //$table.append($("<tr><td colspan='" + opts.columnNames.length + "' class='gridTitle'>" + opts.title + "</td></tr><tr>");
             var clen = opts.columnNames.length;
             var $colNameTr = $("<tr/>");
             for (var c = 0; c < clen; c++) {
@@ -992,7 +1006,7 @@ var miiUtils = miiUtils || {
             "width": "400px",
             "height": "320px",
             "z-index": 1200,
-            "padding-left" : "12px"
+            "padding-left": "12px"
         }).attr({
             "id": "popupTrend"
         });
