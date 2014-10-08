@@ -215,7 +215,7 @@
             }
         }
 
-
+        /*  DEPRECATED!!!! */
         function buildTable() {
 
             var table = [];
@@ -1012,8 +1012,8 @@ var miiUtils = miiUtils || {
         });
 
         $div.append($chartDiv);
-        //$div.append($menuDiv);
-
+        
+      
         var ed = new Date();
         var sd = new Date();
         sd.setDate(ed.getDate() - 30);
@@ -1023,6 +1023,14 @@ var miiUtils = miiUtils || {
         sd.setHours(7);
         sd.setMinutes(0);
         sd.setSeconds(0);
+
+          $menuDiv = $("<div/>").css({"width": "400px", "height" : "20px"});
+        $inputStart = $("<input/>").attr({"type" : "text"});
+        $menuDiv.append($inputStart);
+        $div.append($menuDiv);
+        $inputStart.on("focus", function() { $(this).datepicker({  dateFormat: date_format,
+                defaultDate: sd})});
+
 
         var qt = "";
         var qParams = {};
