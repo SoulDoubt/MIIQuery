@@ -133,6 +133,69 @@
 
     }
 
+
+    $.fn.reagentsTableStandard = function(options) {
+
+            var $self = this;
+            var defaults = {
+                title: "Default Reagents Title",
+                queryTemplates: [],
+                waitText: "Loading..."
+            }
+
+            var opts = $.extend({}, defaults, options);
+            var $waitDiv = createWaitDiv(opts.waitText);
+
+            this.empty();
+            this.append($waitDiv);
+
+            if (opts.queryTemplates.length > 0) {
+                var result = miiUtils.executeMultipleQueryTemplates(opts.queryTemplates);
+                result.done(function() {
+                    var argLength = arguments.length;
+                    if ($.isArray(arguments[0])) {
+                        for (var i = 0; i < argLength; i++) {
+                            var tagLength = opts.queryTemplates[i].tags.length;
+                            var qtTags = opts.queryTemplates[i].tags;
+                            for (var j = 0; j < tagLength; j++) {
+                                miiUtils.bindCombinedRowsetData(qtTags[j], [arguments[i][0]]);
+                            }
+                        }
+                    } else {
+                        var tagLength = opts.queryTemplates[0].tags.length;
+                        var qtTags = opts.queryTemplates[0].tags;
+                        for (var i = 0; i < tagLength; i++) {
+                            miiUtils.bindCombinedRowsetData(qtTags[i], [arguments[0]]);
+
+                        }
+                    }
+                    buildTable();
+                });
+            }
+
+            function buildTable() {
+                $self.empty();
+                var allTags = [];
+                var templateLength = opts.queryTemplates.length;
+                for (var t = 0; t < templateLength; t++) {
+                    allTags = $.merge(allTags, opts.queryTemplates[t].tags);
+                }
+                allTags.sort(function(a, b) {
+                    return a.DisplaySequence - b.DisplaySequence;
+                });
+                var $table = $("<table/>").addClass("invTable");
+                var $trTopHeader = $("<tr>");
+                var $tdTopHeader = $("<td/>").attr({
+                    "colspan": 4
+                }).addClass("valeth").text(options.title);
+                $trTopHeader.append($tdTopHeader);
+                $table.append($trTopHeader);
+                $self.append($table);
+            }
+
+
+        } // reagentsTableStandard
+
     $.fn.piDataGridHTML = function(options) {
         var $self = this;
 
@@ -197,19 +260,21 @@
                     $table.addClass('fakeGrid');
                     var $headerTr = $('<tr/>');
                     $headerTr.append($("<td/>").attr("colspan", opts.columnNames.length).addClass("gridTitle").text(opts.title));
-                    $table.append($headerTr)                        
+                    $table.append($headerTr)
                     var clen = opts.columnNames.length;
                     var $colNameTr = $("<tr/>");
                     for (var c = 0; c < clen; c++) {
                         var $td = $("<td/>").addClass("gridHeader").text(opts.columnNames[c]);
-                        $colNameTr.append($td);                        
+                        $colNameTr.append($td);
                     }
                     $table.append($colNameTr);
                     var $dataTr = $("<tr/>");
-                    var $dataTd = $("<td/>").attr("colspan", opts.columnNames.length).css({ "color" : "red" }).text("An Error Occurred - " + status);
+                    var $dataTd = $("<td/>").attr("colspan", opts.columnNames.length).css({
+                        "color": "red"
+                    }).text("An Error Occurred - " + status);
                     $dataTr.append($dataTd);
                     $table.append($dataTr);
-                    $self.append($table);                   
+                    $self.append($table);
 
                 });
             }
@@ -1012,8 +1077,8 @@ var miiUtils = miiUtils || {
         });
 
         $div.append($chartDiv);
-        
-      
+
+
         var ed = new Date();
         var sd = new Date();
         sd.setDate(ed.getDate() - 30);
@@ -1024,12 +1089,21 @@ var miiUtils = miiUtils || {
         sd.setMinutes(0);
         sd.setSeconds(0);
 
-          $menuDiv = $("<div/>").css({"width": "400px", "height" : "20px"});
-        $inputStart = $("<input/>").attr({"type" : "text"});
+        $menuDiv = $("<div/>").css({
+            "width": "400px",
+            "height": "20px"
+        });
+        $inputStart = $("<input/>").attr({
+            "type": "text"
+        });
         $menuDiv.append($inputStart);
         $div.append($menuDiv);
-        $inputStart.on("focus", function() { $(this).datepicker({  dateFormat: date_format,
-                defaultDate: sd})});
+        $inputStart.on("focus", function() {
+            $(this).datepicker({
+                dateFormat: date_format,
+                defaultDate: sd
+            })
+        });
 
 
         var qt = "";

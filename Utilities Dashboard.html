@@ -1,0 +1,851 @@
+<!DOCTYPE HTML>
+
+<HTML>
+
+<HEAD>
+
+    <TITLE>Utilities and Lower Tier Dashboard</TITLE>
+
+    <META http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <META HTTP-EQUIV='Expires' CONTENT='-0'>
+
+    <meta http-equiv='pragma' content='no-cache'>
+
+    <script type="text/javascript" src="/XMII/JavaScript/bootstrap.js" data-libs="i5Chart,i5Grid"></script>
+    <script type="text/javascript" src="./scripts/utils.mii.js"></script>
+    <script type="text/javascript" src="./scripts/MIIQuery.js"></script>
+    <script type="text/javascript" src="./scripts/jquery.ui.datepicker.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/jquery.jqplot.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.canvasTextRenderer.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.canvasAxisLabelRenderer.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.dateAxisRenderer.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.barRenderer.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.pieRenderer.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.categoryAxisRenderer.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.pointLabels.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqPlot/plugins/jqplot.highlighter.min.js"></script>
+    <script type="text/javascript" src="./scripts/jqplot/plugins/jqplot.canvasAxisTickRenderer.min.js"></script>
+    <script type="text/javascript" src="./scripts/UtilitiesDummyData.js"></script>
+    <script type="text/javascript" src="./scripts/UtilitiesChartOptions.js"></script>
+    <!--    <script type="text/javascript" src="./scripts/jspdf.js"></script> -->
+    <!--[if lt IE 9]>
+<script src="./scripts/modernizr-2.6.2.js"></script>
+<script src="./scripts/es5polyfills.js"></script>
+<script src="./scripts/jqPlot/excanvas.js"></script>
+<script src="./scripts/respond.min.js"></script>
+<script src="./scripts/css3-mediaqueries.js"></script>
+<link href="./styles/jquery.ui.1.10.0.ie.css" rel="stylesheet" />
+<![endif]-->
+    <link rel="stylesheet" href="./styles/bootstrap.css" />
+    <link rel="stylesheet" href="./styles/styles.css" />
+    <link rel="stylesheet" href="./styles/printstyles.css" />
+    <link rel="stylesheet" href="./scripts/jqPlot/jquery.jqplot.min.css" />
+
+
+    <script type="text/javascript">
+    var kppAppletGridTemplate = "Long&#x20;Harbour&#x20;PIMS&#x2f;KPPAppletGrid";
+    var kppGridTemplate = "Long Harbour PIMS/Key_Parameters_Grid";
+    var date_format = 'dd-M-yy';
+
+
+    function getMinDate() {
+        var testDate = $("#dateSelector").datepicker('getDate');
+        return firstDayOfMonth(testDate);
+    }
+
+    function getMaxDate() {
+        var testDate = $("#dateSelector").datepicker('getDate');
+        return maxDate = lastDayOfMonth(testDate);
+    }
+
+
+
+
+    function getOEEData() {
+        var actual = [];
+        var max = mdArrayMax(lpOEEActual, 1);
+        var min = mdArrayMin(lpOEEActual, 1);
+
+        var testDate = $("#dateSelector").datepicker('getDate');
+        var minDate = firstDayOfMonth(testDate);
+        var maxDate = lastDayOfMonth(testDate);
+        var actualData = monthsWorthOfDailyData(min, max, testDate);
+        var target = getTargetPoints(95, testDate);
+
+        for (var i = 0; i < actualData.length; i++) {
+            var dt = new Date(actualData[i][0]);
+            if (dt <= testDate) {
+                var item = [];
+                item.push(dt);
+                item.push(actualData[i][1]);
+                actual.push(item);
+            }
+        }
+        var ret = [];
+        ret.push(actual);
+        ret.push(target);
+        return ret;
+    }
+
+    function dateChanged(date) {
+        var minDate = getMinDate();
+        var maxDate = getMaxDate();
+        if (monthlySummaryChart != null) {
+            var newData = getMonthlyProductionData(date);
+            monthlySummaryChart.replot({
+                data: newData,
+                resetAxes: ['xaxis'],
+                axes: {
+                    xaxis: {
+                        min: minDate,
+                        max: maxDate
+                    }
+                }
+            });
+        }
+        if (oeeChart != null) {
+            var newData = getOEEData();
+            oeeChart.replot({
+                data: newData,
+                resetAxes: ['xaxis'],
+                axes: {
+                    xaxis: {
+                        min: minDate,
+                        max: maxDate
+                    }
+                }
+            });
+        }
+        if (downtimeChart != null) {
+            var newData = getDowntimeData();
+            downtimeChart.replot({
+                data: newData,
+                resetAxes: ['xaxis'],
+                axes: {
+                    xaxis: {
+                        min: minDate,
+                        max: maxDate
+                    }
+                }
+            });
+        }
+    }
+
+
+
+    $(document).ready(function() {
+
+        var today = new Date();
+        today.setHours(0);
+        today.setMinutes(0);
+        today.setSeconds(0);
+        if (typeof jQuery.ui != undefined) {
+            $("#dateSelector").datepicker({
+                changeMonth: true,
+                changeYear: true,
+                yearRange: '2014:2020',
+                dateFormat: date_format,
+                defaultDate: today,
+                onSelect: function() {
+                    dateChanged($("#dateSelector").datepicker("getDate"));
+                }
+            });
+
+            var t = $.datepicker.formatDate(date_format, today);
+            $("#dateSelector").val(t);
+        }
+
+        //displayGridApplet("Long Harbour PIMS/General_010_DummyQuery", kppAppletGridTemplate, "010 - General", "330px", "80px", "kpp010", "gridAppletCreated");
+        //displayGridApplet("Long Harbour PIMS/ConcGrinding_152_DummyQuery", kppAppletGridTemplate, "152 - Concentrate Handling", "330px", "185px", "kpp152");
+        //displayGridApplet("Long Harbour PIMS/HeatingHVAC_545_DummyQuery", kppAppletGridTemplate, "545 - Heating and HVAC System", "330px", "140px", "kpp545");
+        //displayGridApplet("Long Harbour PIMS/SulphuricAcid_425_DummyQuery", kppAppletGridTemplate, "425 - Sulphuric Acid", "330px", "80px", "kpp425");
+        //displayGridApplet("Long Harbour PIMS/OxyProduction_440_DummyQuery", kppAppletGridTemplate, "440 - Oxygen Production and Distribution", "330px", "140px", "kpp440");
+        //displayGridApplet("Long Harbour PIMS/Steam_505_DummyQuery", kppAppletGridTemplate, "505 - Steam Supply and Distribution", "330px", "390px", "kpp505");
+        //displayGridApplet("Long Harbour PIMS/FeedQuality_DummyQuery", "Long Harbour PIMS/FeedQualityAppletGrid", "Feed Quality to Upper Tier", "280px", "185px", "feedQualityGrid");
+        //displayGridApplet("Long Harbour PIMS/CoolingWater_550_DummyQuery", kppAppletGridTemplate, "550 - Cooling Water System", "330px", "420px", "kpp550");
+        //displayGridApplet("Long Harbour PIMS/SoftWater_560_DummyQuery", kppAppletGridTemplate, "560 - Softened Water Supply", "330px", "125px", "kpp560");
+        //displayGridApplet("Long Harbour PIMS/Condensate_510_DummyQuery", kppAppletGridTemplate, "510 - Condensate Return", "330px", "130px", "kpp510");
+        //displayGridApplet("Long Harbour PIMS/Potable_570_DummyQuery", kppAppletGridTemplate, "570 - Potable Water Treatment", "330px", "80px", "kpp570");
+        //displayGridApplet("Long Harbour PIMS/Sewage_585_DummyQuery", kppAppletGridTemplate, "585 - Sewage Treatment Plant", "330px", "130px", "kpp585");
+        //displayGridApplet("Long Harbour PIMS/RawWater_501_DummyQuery", kppAppletGridTemplate, "501 - Raw Water Treatment", "330px", "160px", "kpp501");
+        var dailyDates = getDailyDates(today);
+
+
+        drawMonthlyProductionSummary(today);
+        drawLOEE();
+        drawWaterConsumption();
+        drawWaterConsumptionByPlant();
+        drawSewage();
+        drawDowntime();
+        drawDowntimeByPlant();
+        drawSteamConsumption();
+        drawCoolingTowerLoad();
+        displayGridHTML("Long Harbour PIMS/Steam_505_DummyQuery", "505 - Steam Supply and Distribution", "330px", "390px", "kpp505");
+        displayGridHTML("Long Harbour PIMS/RawWater_501_DummyQuery", "501 - Raw Water Treatment", "330px", "160px", "kpp501");
+        displayGridHTML("Long Harbour PIMS/General_010_DummyQuery", "010 - General", "330px", "80px", "kpp010", "gridAppletCreated");
+        displayGridHTML("Long Harbour PIMS/ConcGrinding_152_DummyQuery", "152 - Concentrate Handling", "330px", "185px", "kpp152");
+        displayGridHTML("Long Harbour PIMS/HeatingHVAC_545_DummyQuery", "545 - Heating and HVAC System", "330px", "140px", "kpp545");
+        displayGridHTML("Long Harbour PIMS/SulphuricAcid_425_DummyQuery", "425 - Sulphuric Acid", "330px", "80px", "kpp425");
+        displayGridHTML("Long Harbour PIMS/OxyProduction_440_DummyQuery", "440 - Oxygen Production and Distribution", "330px", "140px", "kpp440");
+        displayGridHTML("Long Harbour PIMS/FeedQuality_DummyQuery", "Feed Quality to Upper Tier", "280px", "185px", "feedQualityGrid");
+        displayGridHTML("Long Harbour PIMS/CoolingWater_550_DummyQuery", "550 - Cooling Water System", "330px", "420px", "kpp550");
+        displayGridHTML("Long Harbour PIMS/SoftWater_560_DummyQuery", "560 - Softened Water Supply", "330px", "125px", "kpp560");
+        displayGridHTML("Long Harbour PIMS/Condensate_510_DummyQuery", "510 - Condensate Return", "330px", "130px", "kpp510");
+        displayGridHTML("Long Harbour PIMS/Potable_570_DummyQuery", "570 - Potable Water Treatment", "330px", "80px", "kpp570");
+        displayGridHTML("Long Harbour PIMS/Sewage_585_DummyQuery", "585 - Sewage Treatment Plant", "330px", "130px", "kpp585");
+
+        buildReagentsTableStandard("O2 Scavenger", "scav");
+        //buildReagentsTableStandard("Biocide", "biocide");
+
+        var bioConsTag = new miiUtils.TagData("8572-242470-HIC-40230-OUT", "Consumption", "L/h", '', 0);
+        var bioTags = [bioConsTag];
+        var bioOpts = {
+            queryTemplates: [{
+                template: "Long Harbour PIMS/DailyAvgPcoQuery",
+                tags: bioTags,
+                params: miiUtils.createPcoAggregateQueryParams(bioTags, dailyDates.start, dailyDates.end)
+            }],
+            title: "Biocide"
+        };
+        $("#biocide").reagentsTableStandard(bioOpts);
+
+        buildReagentsTableStandard("Coagulant (Alum)", "coagulant");
+        buildReagentsTableStandard("NaCl", "nacl");
+        buildReagentsTableStandard("Dispersant", "dispersant");
+        buildReagentsTableStandard("Scale Inhibitor", "scale");
+        buildReagentsTableStandard("25% Caustic (228 WTP)", "caustic");
+        buildReagentsTableStandard("H2S04", "h2so4");
+        buildReagentsTableStandard("Amine", "amine");
+        buildReagentsTableStandard("Biodispersant", "biodispersant");
+        buildReagentsTableStandard("Flocculant (228 WTP)", "flocculant");
+        buildReagentsTableStandard("Boiler Fuel", "boilerfuel");
+        buildReagentsTableStandard("Caustic (Boiler Treatment)", "boilercaustic");
+        buildReagentsTableStandard("Corrosion Inhibitor", "corrosion");
+
+    });
+
+
+    var monthlySummaryChart = null;
+
+    function drawMonthlyProductionSummary(dt) {
+
+        var minDate = getMinDate();
+        var maxDate = getMaxDate();
+        var monthlySummaryChartOptions = {
+            title: 'LHPP Overview: Plant Production',
+            axes: {
+                xaxis: {
+                    renderer: $.jqplot.DateAxisRenderer,
+                    tickOptions: {
+                        formatString: '%d-%b-%Y'
+                    },
+                    label: 'Date',
+                    min: minDate,
+                    max: maxDate
+                },
+                yaxis: {
+                    label: 'Tonnes',
+                    min: 0,
+                    max: 6000,
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                },
+                y2axis: {
+                    min: 0,
+                    max: 500
+                }
+            },
+            series: [{
+                label: "Nickel - Sum",
+                color: "#007E7A",
+                renderer: $.jqplot.BarRenderer,
+                rendererOptions: {
+                    fillToZero: true,
+                    barMargin: 5,
+                    barWidth: 25
+                },
+                yaxis: 'yaxis'
+            }, {
+                label: "Daily Nickel",
+                lineWidth: 2,
+                color: "blue",
+                markerOptions: {
+                    show: true
+                },
+                pointLabels: {
+                    show: true
+                },
+                yaxis: 'y2axis'
+            }, {
+                label: "Daily Ni Target",
+                lineWidth: 2,
+                color: "red",
+                markerOptions: {
+                    show: false
+                },
+                yaxis: 'y2axis'
+            }, {
+                label: "Target - Sum",
+                lineWidth: 2,
+                color: "#000000",
+                markerOptions: {
+                    show: false
+                },
+                yaxis: 'yaxis'
+            }],
+            highlighter: {
+                show: true
+
+            },
+            cursor: {
+                show: false
+            },
+            legend: {
+                show: true,
+                location: "nw",
+                placement: "insideGrid"
+            },
+            grid: {
+                background: "#FFFFFF"
+            }
+        };
+        var data = getMonthlyProductionData(dt);
+        monthlySummaryChart = $.jqplot('props', data, monthlySummaryChartOptions);
+        $("#props").CanvasHack();
+    }
+
+    /*
+        OEE CHART
+
+    */
+
+    var oeeChart = null;
+
+    function drawLOEE() {
+
+        var testDate = $("#dateSelector").datepicker('getDate');
+        var minDate = firstDayOfMonth(testDate);
+        var maxDate = lastDayOfMonth(testDate);
+
+        var data = getOEEData();
+
+        var chartOptions = {
+            title: 'Utilities and Lower Tier OEE',
+            axes: {
+                xaxis: {
+                    renderer: $.jqplot.DateAxisRenderer,
+                    label: 'Day',
+                    tickOptions: {
+                        formatString: '%d-%b-%Y'
+                    },
+                    min: minDate,
+                    max: maxDate
+                },
+                yaxis: {
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                    label: 'Percentage(%)'
+                }
+            },
+            series: [{
+                label: "Actual",
+                lineWidth: 2,
+                color: "#007E7A",
+                markerOptions: {
+                    show: true
+                }
+            }, {
+                label: "Target",
+                lineWidth: 2,
+                color: "#ECB11F",
+                markerOptions: {
+                    show: false
+                },
+
+            }],
+            highlighter: {
+                show: true,
+                sizeAdjust: 10.5
+            },
+            cursor: {
+                show: false
+            },
+            grid: {
+                background: "#FFFFFF"
+            },
+            legend: {
+                show: true,
+                location: "se",
+                placement: "insideGrid"
+            }
+        };
+
+        oeeChart = $.jqplot('loeeChart', data, chartOptions);
+    }
+
+
+    /*
+    WATER CONSUMPTION CHART
+
+*/
+    var waterConsumptionChart = null;
+
+    function getWaterConsData() {
+        var queryParams = {};
+        ajaxQuery("Long Harbour PIMS/WaterConsDummyQuery", queryParams, null, waterConsDataSuccess, ajaxError);
+    }
+
+    function waterConsDataSuccess(data, status, xhr) {
+        var formattedData = makeMIIDataPlotable(data);
+        if (formattedData != undefined) {
+            if (waterConsumptionChart != null) {
+                waterConsumptionChart.replot({
+                    data: formattedData
+                });
+            } else {
+                waterConsumptionChart = $.jqplot('waterConsChart', formattedData, waterConsChartOptions);
+            }
+        }
+    }
+
+    function drawWaterConsumption() {
+        getWaterConsData();
+    }
+
+    /*
+        Water Consumption By plant chart
+
+    */
+
+    function drawWaterConsumptionByPlant() {
+
+        $.jqplot('waterConsByAreaChart', [waterConsByArea], waterConsByPlantChartOptions);
+    }
+
+    /*
+        SEWAGE CHART
+    */
+
+    function drawSewage() // Ewwwwww
+        {
+
+            $.jqplot('sewageChart', [sewagePh, sewageTSS], sewageChartOptions);
+        }
+
+    /*
+        DOWNTIME LOSSES CHART
+    */
+
+    function getDowntimeData() {
+        var dt = $("#dateSelector").datepicker("getDate");
+        var actual = monthsWorthOfDailyData(68, 95, dt);
+        var utilization = monthsWorthOfDailyData(65, 95, dt);
+        var filteredActual = [];
+        var filteredUtil = [];
+        for (var i = 0; i < actual.length; i++) {
+            var d = new Date(actual[i][0]);
+            if (d <= dt) {
+                filteredActual.push(actual[i]);
+                filteredUtil.push(utilization[i]);
+            }
+        }
+
+        var target = getTargetPoints(95, dt);
+        var data = [];
+        data.push(filteredActual);
+        data.push(filteredUtil);
+        data.push(target);
+        return data;
+    }
+
+
+
+    var downtimeChart = null;
+
+    function drawDowntime() {
+
+        var data = getDowntimeData();
+
+
+
+        var dt = $("#dateSelector").datepicker("getDate");
+        var minDate = firstDayOfMonth(dt);
+        var maxDate = lastDayOfMonth(dt);
+        var chartOptions = {
+            title: 'Downtime Losses',
+            axes: {
+                xaxis: {
+                    renderer: $.jqplot.DateAxisRenderer,
+                    label: 'Day',
+                    tickOptions: {
+                        formatString: '%d-%b-%Y',
+                        angle: -30
+                    },
+                    min: minDate,
+                    max: maxDate,
+                    numberTicks: 7
+                },
+                yaxis: {
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                    label: 'Percentage(%)'
+                }
+            },
+            series: [{
+                label: "Actual",
+                lineWidth: 2,
+                color: "#007E7A",
+                markerOptions: {
+                    show: true
+                }
+            }, {
+                label: "Utilization",
+                lineWidth: 2,
+                color: "red",
+                markerOptions: {
+                    show: true
+                }
+            }, {
+                label: "Target",
+                lineWidth: 2,
+                color: "#ECB11F",
+                markerOptions: {
+                    show: false
+                },
+
+            }],
+            highlighter: {
+                show: true,
+                sizeAdjust: 10.5
+            },
+            cursor: {
+                show: false
+            },
+            grid: {
+                background: "#FFFFFF"
+            },
+            legend: {
+                show: true,
+                location: "s",
+                placement: "insideGrid"
+
+            }
+        };
+
+        downtimeChart = $.jqplot('downtimeLineChart', data, chartOptions);
+    }
+
+    /*
+        DOWNTIME BY PLANT CHART
+    */
+
+    function getDowntimeByPlantData() {
+        var queryParams = {};
+        ajaxQuery("Long Harbour PIMS/Downtime_Dummy_Query", queryParams, null, downtimeByPlantSuccess, ajaxError);
+    }
+
+    function downtimeByPlantSuccess(data, status, xhr) {
+        var chartOptions = {
+
+            seriesDefaults: {
+                renderer: $.jqplot.PieRenderer,
+                rendererOptions: {
+                    showDataLabels: true,
+                    sliceMargin: 2
+                },
+            },
+            title: 'System Daily Downtime (hrs)',
+            legend: {
+                show: true,
+                location: 'e',
+                placement: 'inside',
+                renderer: $.jqplot.EnhancedLegendRenderer,
+                rendererOptions: {
+                    numberRows: 7,
+
+                }
+            },
+            grid: {
+                background: "#FFFFFF"
+            }
+        };
+        var formattedData = makeMIIDataPlotable(data);
+        if (formattedData != undefined) {
+            if (downtimeByPlantChart != null) {
+                downtimeByPlantChart.replot({
+                    data: formattedData
+                });
+            } else {
+                $.jqplot('downtimePieChart', formattedData, chartOptions);
+            }
+        }
+
+    }
+
+    var downtimeByPlantChart = null;
+
+    function drawDowntimeByPlant() {
+        getDowntimeByPlantData();
+
+    }
+
+    /*
+        STEAM CONSUMPTION CHART
+    */
+    function drawSteamConsumption() {
+        var s1 = [23.0, 18.0];
+
+        var ticks = ["5 Day Moving Avg", "24 h Avg"];
+        var chartOptions = {
+            title: 'Steam Consumption',
+            axes: {
+                xaxis: {
+                    renderer: $.jqplot.CategoryAxisRenderer,
+                    ticks: ticks
+                },
+                yaxis: {
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                    label: 't/h'
+                }
+            },
+            series: [{
+                renderer: $.jqplot.BarRenderer,
+                rendererOptions: {
+                    varyBarColor: true,
+                    rotate: -30
+                },
+                //rendererOptions: {fillToZero: true, barMargin: 10, barWidth: "auto" },                
+                color: "#007E7A"
+                    //markerOptions: { show: true }                                         
+            }],
+            grid: {
+                background: "#FFFFFF"
+            },
+            legend: {
+                show: false,
+                location: "se",
+                placement: "insideGrid"
+            }
+        };
+
+        $.jqplot('steamConsChart', [s1], chartOptions);
+
+    }
+
+    /*
+        COOLING TOWER LOAD CHART
+    */
+
+    function drawCoolingTowerLoad() {
+        var s1 = [249600.0, 232200.0];
+
+        var ticks = ["5 Day Moving Avg", "24 h Avg"];
+        var chartOptions = {
+            title: 'Cooling Tower Load',
+            axes: {
+                xaxis: {
+                    renderer: $.jqplot.CategoryAxisRenderer,
+                    ticks: ticks
+                },
+                yaxis: {
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                    label: 'kJ/h'
+                }
+            },
+            series: [{
+                renderer: $.jqplot.BarRenderer,
+                rendererOptions: {
+                    varyBarColor: true
+                },
+                //rendererOptions: {fillToZero: true, barMargin: 10, barWidth: "auto" },                
+                color: "#007E7A"
+                    //markerOptions: { show: true }                                         
+            }],
+            grid: {
+                background: "#FFFFFF"
+            },
+            legend: {
+                show: false,
+                location: "se",
+                placement: "insideGrid"
+            }
+        };
+
+        $.jqplot('coolingTowerChart', [s1], chartOptions);
+    }
+    </script>
+
+    <body>
+
+        <table class="pageHeader">
+            <tr>
+                <td>
+                    <a href="#">
+                        <img src="./images/logo.png" alt="Vale Logo" width="80px" />
+                    </a>
+                </td>
+                <td style="vertical-align: bottom;">
+                    <a class="navbar-brand" href="#">
+          Long Harbour - Utilities and Lower Tier Dashboard</a>
+                </td>
+                <td>
+                    <label for="dateSelector">Date:</label>
+                    <input type="text" class="form-control" id="dateSelector">
+
+                </td>
+                <td style="width: 700px;">
+                </td>
+            </tr>
+        </table>
+
+
+        <table>
+            <tr>
+                <td style="width: 1225px; vertical-align: top;">
+                    <table>
+                        <tr>
+                            <td colspan="4" class="areaHeader">LHPP Overview: Plant Production</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4">
+                                <div id="props" class="dashPanel" style="height: 300px; width: 1206px;"></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="areaHeader">Lower Tier and Utilities Overview Summary</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <div class="dashPanel" id="loeeChart" style="width: 600px; height: 200px;"></div>
+                            </td>
+                            <td>
+                                <div class="dashPanel" id="waterConsChart" style="width: 300px; height: 200px;"></div>
+                            </td>
+                            <td>
+                                <div class="dashPanel" id="waterConsByAreaChart" style="width: 300px; height: 200px;"></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <div class="dashPanel" id="downtimeLineChart" style="width: 600px; height: 200px;"></div>
+                            </td>
+
+                            <td colspan="2">
+                                <div class="dashPanel" id="sewageChart" style="width: 600px; height: 200px;"></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="dashPanel" id="feedQualityGrid" style="width: 300px; height: 200px;"></div>
+                            </td>
+                            <td>
+                                <div class="dashPanel" id="downtimePieChart" style="width: 300px; height: 200px;"></div>
+                            </td>
+                            <td>
+                                <div class="dashPanel" id="steamConsChart" style="width: 300px; height: 200px;"></div>
+                            </td>
+                            <td>
+                                <div class="dashPanel" id="coolingTowerChart" style="width: 300px; height: 200px;"></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="areaHeader">Reagents</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div style="width: 300px;" id="scav">
+                                </div>
+                            </td>
+                            <td>
+                                <div style="width: 300px;" id="biocide">
+                                </div>
+                            </td>
+                            <td>
+                                <div style="width: 300px;" id="coagulant">
+                                </div>
+                            </td>
+                            <td>
+                                <div style="width: 300px;" id="nacl">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div style="width: 300px;" id="dispersant">
+                                </div>
+                            </td>
+                            <td>
+                                <div style="width: 300px;" id="scale">
+                                </div>
+                            </td>
+                            <td>
+                                <div style="width: 300px;" id="caustic">
+                                </div>
+                            </td>
+                            <td>
+                                <div style="width: 300px;" id="h2so4">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div style="width: 300px;" id="amine">
+                                </div>
+                            </td>
+                            <td>
+                                <div style="width: 300px;" id="biodispersant">
+                                </div>
+                            </td>
+                            <td>
+                                <div style="width: 300px;" id="flocculant">
+                                </div>
+                            </td>
+                            <td>
+                                <div style="width: 300px;" id="boilerfuel">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div style="width: 300px;" id="boilercaustic">
+                                </div>
+                            </td>
+                            <td>
+                                <div style="width: 300px;" id="corrosion">
+                                </div>
+                            </td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    </table>
+                </td>
+                <td style="vertical-align: top;">
+                    <table>
+                        <tr>
+                            <td colspan="2" class="areaHeader">Key Parameters Per System</td>
+                        </tr>
+                        <tr>
+                            <td style="vertical-align: top;">
+                                <!-- right side applets go here -->
+                                <div class="kppContainer" id="kpp010"></div>
+                                <div class="kppContainer" id="kpp152"></div>
+                                <div class="kppContainer" id="kpp425"></div>
+                                <div class="kppContainer" id="kpp440"></div>
+                                <div class="kppContainer" id="kpp505"></div>
+                                <div class="kppContainer" id="kpp510"></div>
+                            </td>
+                            <td style="vertical-align: top;">
+                                <div class="kppContainer" id="kpp545"></div>
+                                <div class="kppContainer" id="kpp550"></div>
+                                <div class="kppContainer" id="kpp560"></div>
+                                <div class="kppContainer" id="kpp570"></div>
+                                <div class="kppContainer" id="kpp585"></div>
+                                <div class="kppContainer" id="kpp501"></div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+
+    </body>
+
+</HTML>
